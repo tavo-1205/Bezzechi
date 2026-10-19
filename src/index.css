@@ -330,7 +330,7 @@
   }
 }
 
-@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+@media (pointer: coarse) {
   html.has-cursor,
   html.has-cursor * {
     cursor: auto !important;
@@ -341,10 +341,22 @@
   }
 }
 
+/* Equivalente para reduced-motion, salvo con el override `?motion=full`. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not([data-motion='full']).has-cursor,
+  html:not([data-motion='full']).has-cursor * {
+    cursor: auto !important;
+  }
+  html:not([data-motion='full']) .cursor-dot,
+  html:not([data-motion='full']) .cursor-ring {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion='full']) *,
+  html:not([data-motion='full']) *::before,
+  html:not([data-motion='full']) *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;

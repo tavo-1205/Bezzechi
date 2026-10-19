@@ -101,12 +101,12 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .x-preloader,
-    .x-light {
+    html:not([data-motion="full"]) .x-preloader,
+    html:not([data-motion="full"]) .x-light {
       transition: none !important;
       animation: none !important;
     }
-    .x-preloader.fading {
+    html:not([data-motion="full"]) .x-preloader.fading {
       opacity: 0 !important;
     }
   }
@@ -138,7 +138,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .x-spotlight {
+    html:not([data-motion="full"]) .x-spotlight {
       transition: none !important;
       animation: none !important;
     }
@@ -169,7 +169,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .x-hud-line::after {
+    html:not([data-motion="full"]) .x-hud-line::after {
       transition: none !important;
       animation: none !important;
     }
