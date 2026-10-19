@@ -1,36 +1,112 @@
-import { useRef, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react';
+import {
+  useEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+  type ReactElement,
+} from 'react';
 import { motion, useReducedMotion, type MotionProps } from 'framer-motion';
 import HeroScene from './three/HeroScene';
+import MagneticButton from './MagneticButton';
 import { scrollToSection } from '../lib/scroll';
-import type { HeroPointer } from './three/pointer';
+import { ENTRANCE_MS, clamp, createHeroState, type HeroState } from './three/pointer';
 
 /* --------------------------------------------------------------------------
  * Sección hero (#inicio) con escena 3D de fondo y tipografía encima.
  * - Canvas 3D en capa absoluta con pointer-events-none; el puntero se lee
- *   desde la propia sección y se comparte con la escena vía `pointerRef`.
- * - Respeta prefers-reduced-motion: escena estática y sin reveal.
+ *   desde la propia sección y se comparte con la escena vía `stateRef`
+ *   (estado mutable, sin allocations por evento).
+ * - Reactividad (CONTRACTS §4.2): eventos NATIVOS `scroll`/`resize` con
+ *   rAF-throttle escribiendo el progreso de la sección en `state.scroll`; la
+ *   fuente de verdad del suavizado está en la escena (`Rig`/`Entrance`).
+ * - Entrada (CONTRACTS §4.1): hasta `preloader:done` (o
+ *   `dataset.preloader === 'done'` al montar, o timeout de seguridad de 5 s) el
+ *   hero no arranca su animación de entrada; con reduced motion aparece ya en su
+ *   estado final, sin animación.
  * ------------------------------------------------------------------------ */
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+/** Red de seguridad si `preloader:done` no llega nunca (CONTRACTS §4.1). */
+const ENTRANCE_TIMEOUT_MS = 5000;
 
 export default function Hero3D(): ReactElement {
   const reduced = useReducedMotion() ?? false;
-  const pointerRef = useRef<HeroPointer>({ x: 0, y: 0, hover: 0 });
+  const stateRef = useRef<HeroState>(createHeroState());
+  const sectionRef = useRef<HTMLElement>(null);
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
     const px = (event.clientX - rect.left) / rect.width;
     const py = (event.clientY - rect.top) / rect.height;
-    pointerRef.current = {
-      x: px * 2 - 1,
-      y: -(py * 2 - 1),
-      hover: px > 0.4 && py > 0.35 ? 1 : 0,
-    };
+    // Se muta en sitio el objeto compartido: cero basura por evento.
+    const state = stateRef.current;
+    state.x = clamp(px * 2 - 1, -1, 1);
+    state.y = clamp(-(py * 2 - 1), -1, 1);
+    state.hover = px > 0.4 && py > 0.35 ? 1 : 0;
   };
 
   const handlePointerLeave = (): void => {
-    pointerRef.current = { x: 0, y: 0, hover: 0 };
+    const state = stateRef.current;
+    state.x = 0;
+    state.y = 0;
+    state.hover = 0;
   };
+
+  // Progreso de scroll de la propia sección (0 = hero entero, 1 = fuera de vista).
+  useEffect(() => {
+    if (reduced) return;
+    const state = stateRef.current;
+    let frame = 0;
+
+    const update = (): void => {
+      frame = 0;
+      const el = sectionRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      state.scroll = rect.height > 0 ? clamp(-rect.top / rect.height, 0, 1) : 0;
+    };
+    const request = (): void => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', request, { passive: true });
+    window.addEventListener('resize', request, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', request);
+      window.removeEventListener('resize', request);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [reduced]);
+
+  // Entrada autorizada por el semáforo (`preloader:done`) con timeout de 5 s.
+  useEffect(() => {
+    const state = stateRef.current;
+    if (reduced) {
+      // Estado final desde el primer frame, sin animación.
+      state.entrance = true;
+      state.entranceAt = performance.now() - ENTRANCE_MS;
+      return;
+    }
+
+    let done = false;
+    const authorize = (): void => {
+      if (done) return;
+      done = true;
+      state.entrance = true;
+      state.entranceAt = performance.now();
+      window.clearTimeout(timer);
+    };
+    const timer = window.setTimeout(authorize, ENTRANCE_TIMEOUT_MS);
+
+    if (document.documentElement.dataset.preloader === 'done') authorize();
+    else window.addEventListener('preloader:done', authorize, { once: true });
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('preloader:done', authorize);
+    };
+  }, [reduced]);
 
   const clipReveal = (delay: number): MotionProps =>
     reduced
@@ -53,6 +129,7 @@ export default function Hero3D(): ReactElement {
   return (
     <section
       id="inicio"
+      ref={sectionRef}
       className="section relative min-h-screen scroll-mt-24 overflow-hidden py-0"
       aria-labelledby="inicio-title"
       onPointerMove={handlePointerMove}
@@ -72,7 +149,7 @@ export default function Hero3D(): ReactElement {
 
       {/* Capa 3D */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <HeroScene pointerRef={pointerRef} reduced={reduced} />
+        <HeroScene state={stateRef} reduced={reduced} />
       </div>
 
       {/* Fade inferior para fundir con la siguiente sección */}
@@ -105,9 +182,11 @@ export default function Hero3D(): ReactElement {
         </motion.p>
 
         <motion.div {...fadeUp(0.6)}>
-          <button
-            type="button"
+          {/* `MagneticButton` (uidesign, CONTRACTS §5): mismo onClick/a11y de antes,
+              atracción sutil (0.25); se desactiva con reduced motion y puntero grueso. */}
+          <MagneticButton
             onClick={() => scrollToSection('marcador')}
+            strength={0.25}
             className="group mt-14 inline-flex w-fit items-center gap-4"
           >
             <span className="font-cond text-[0.72rem] tracking-[0.35em] text-ash uppercase transition-colors group-hover:text-mist">
@@ -122,7 +201,7 @@ export default function Hero3D(): ReactElement {
                 transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
               />
             </span>
-          </button>
+          </MagneticButton>
         </motion.div>
       </div>
     </section>

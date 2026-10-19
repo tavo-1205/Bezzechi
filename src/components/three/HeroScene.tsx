@@ -3,10 +3,11 @@ import { Canvas } from '@react-three/fiber';
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei';
 import Bike from './Bike';
 import Rig from './Rig';
+import Entrance from './Entrance';
 import HeroGlow from './Glow';
 import SpeedParticles from './SpeedParticles';
 import { useBreakpoint } from './useBreakpoint';
-import type { HeroPointer } from './pointer';
+import type { HeroState } from './pointer';
 
 /**
  * Composición de la escena 3D del hero:
@@ -15,19 +16,23 @@ import type { HeroPointer } from './pointer';
  *   a `Bike` (menos draw calls) manteniendo los mismos materiales.
  * - Trazas de velocidad instanciadas (ausentes con reduced motion) y halos
  *   aditivos como postprocesado ligero (estáticos con reduced motion).
+ * - Reactividad (H3.3) leída del estado compartido: `Rig` (cámara),
+ *   `Entrance` (entrada + desplazamiento por scroll de la moto), glow y
+ *   partículas. Todo ello se desactiva con reduced motion.
  */
 
 interface HeroSceneProps {
-  pointerRef: RefObject<HeroPointer>;
+  state: RefObject<HeroState>;
   reduced: boolean;
 }
 
 const MOBILE_CAM: [number, number, number] = [0, 1.6, 8.5];
 const DESKTOP_CAM: [number, number, number] = [0, 1.05, 5.6];
 
-export default function HeroScene({ pointerRef, reduced }: HeroSceneProps) {
+export default function HeroScene({ state, reduced }: HeroSceneProps) {
   const mobile = useBreakpoint('(max-width: 767px)');
   const bikeX = mobile ? 0 : 1.15;
+  const bikeY = mobile ? -0.15 : 0;
 
   return (
     <Canvas
@@ -44,10 +49,10 @@ export default function HeroScene({ pointerRef, reduced }: HeroSceneProps) {
       <directionalLight position={[-4, 2.4, -4]} intensity={0.55} color="#8ab4ff" />
 
       <Suspense fallback={null}>
-        <Rig pointerRef={pointerRef} mobile={mobile} reduced={reduced}>
-          <group position={[bikeX, mobile ? -0.15 : 0, 0]}>
+        <Rig state={state} mobile={mobile} reduced={reduced}>
+          <Entrance state={state} reduced={reduced} x={bikeX} y={bikeY}>
             <Bike reduced={reduced} detailed={!mobile} />
-          </group>
+          </Entrance>
         </Rig>
 
         <ContactShadows
@@ -60,9 +65,9 @@ export default function HeroScene({ pointerRef, reduced }: HeroSceneProps) {
           color="#000000"
         />
 
-        <HeroGlow x={bikeX} reduced={reduced} />
+        <HeroGlow x={bikeX} reduced={reduced} state={state} />
 
-        {!reduced && <SpeedParticles mobile={mobile} />}
+        {!reduced && <SpeedParticles mobile={mobile} state={state} />}
 
         {/* Reflexiones locales: caja de luz con Lightformers (sin HDR remoto). */}
         <Environment resolution={256} frames={1}>

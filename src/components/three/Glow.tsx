@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, type MeshBasicMaterial, type SpriteMaterial } from 'three';
 import { createGlowTexture } from './textures';
+import { damp, entranceProgress, type HeroState } from './pointer';
 
 /**
  * Postprocesado ligero **sin dependencias**: en lugar de un pipeline de bloom
@@ -20,27 +21,40 @@ interface HeroGlowProps {
   /** Centro X de la moto en la escena (móvil = 0, escritorio ≈ 1,15). */
   x: number;
   reduced: boolean;
+  state: RefObject<HeroState>;
 }
 
 /** Opacidades base (valor inicial de los materiales y valor medio del pulso). */
 const HALO_OPACITY = 0.32;
 const CORE_OPACITY = 0.4;
 const GROUND_OPACITY = 0.26;
+/** Con la entrada sin autorizar el glow se queda al 40 % (no arranca "en frío"). */
+const INTENSITY_MIN = 0.4;
 
-export default function HeroGlow({ x, reduced }: HeroGlowProps) {
+export default function HeroGlow({ x, reduced, state }: HeroGlowProps) {
   const glow = useMemo(() => createGlowTexture(128), []);
   useEffect(() => () => glow.dispose(), [glow]);
 
   const halo = useRef<SpriteMaterial>(null);
   const core = useRef<SpriteMaterial>(null);
   const ground = useRef<MeshBasicMaterial>(null);
+  const intensity = useRef(0);
 
-  useFrame((state) => {
+  useFrame((frame, delta) => {
     if (reduced) return;
-    const t = state.clock.elapsedTime;
-    if (halo.current) halo.current.opacity = HALO_OPACITY + Math.sin(t * 0.55) * 0.035;
-    if (core.current) core.current.opacity = CORE_OPACITY + Math.sin(t * 0.85 + 1.1) * 0.06;
-    if (ground.current) ground.current.opacity = GROUND_OPACITY + Math.sin(t * 0.7 + 2.2) * 0.04;
+    const s = state.current;
+    // La entrada también enciende el glow (sube de intensidad tras el semáforo).
+    intensity.current = damp(
+      intensity.current,
+      entranceProgress(s, performance.now()),
+      3,
+      Math.min(delta, 0.1),
+    );
+    const k = INTENSITY_MIN + (1 - INTENSITY_MIN) * intensity.current;
+    const t = frame.clock.elapsedTime;
+    if (halo.current) halo.current.opacity = (HALO_OPACITY + Math.sin(t * 0.55) * 0.035) * k;
+    if (core.current) core.current.opacity = (CORE_OPACITY + Math.sin(t * 0.85 + 1.1) * 0.06) * k;
+    if (ground.current) ground.current.opacity = (GROUND_OPACITY + Math.sin(t * 0.7 + 2.2) * 0.04) * k;
   });
 
   return (
@@ -52,7 +66,7 @@ export default function HeroGlow({ x, reduced }: HeroGlowProps) {
           map={glow}
           color="#ff4d00"
           transparent
-          opacity={HALO_OPACITY}
+          opacity={HALO_OPACITY * INTENSITY_MIN}
           blending={AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
@@ -66,7 +80,7 @@ export default function HeroGlow({ x, reduced }: HeroGlowProps) {
           map={glow}
           color="#ff8a3d"
           transparent
-          opacity={CORE_OPACITY}
+          opacity={CORE_OPACITY * INTENSITY_MIN}
           blending={AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
@@ -81,7 +95,7 @@ export default function HeroGlow({ x, reduced }: HeroGlowProps) {
           map={glow}
           color="#ff4d00"
           transparent
-          opacity={GROUND_OPACITY}
+          opacity={GROUND_OPACITY * INTENSITY_MIN}
           blending={AdditiveBlending}
           depthWrite={false}
           toneMapped={false}

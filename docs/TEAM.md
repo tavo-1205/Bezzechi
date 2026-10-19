@@ -89,7 +89,7 @@ prioriza en §8 (crítica / alta / media) → especialistas corrigen → se repi
 | `src/index.css` | Director | en curso | import de `extras.css` ya hecho |
 | `src/styles/extras.css` | uidesign | hecho | clases con prefijo `x-` |
 | `App.tsx`, `main.tsx`, `index.html` | Director | pendiente | único integrador |
-| `components/Hero3D.tsx`, `components/three/**` | hero3d | en curso | H3.1 aprobado; H3.2 hecho (trazas + glow aditivo, a11y del `h1`); espera revisión del Director (§9) |
+| `components/Hero3D.tsx`, `components/three/**` | hero3d | hecho | H3.1-H3.3 completos: moto, trazas+glow, reactividad (scroll/puntero/entrada con `preloader:done`) y `MagneticButton` en el CTA (§9 R2) |
 | `components/Preloader.tsx` (nuevo) | uidesign | hecho | emisor `preloader:done` |
 | `components/TiltCard.tsx`, `SectionHeading.tsx` | uidesign | hecho | primitivas de UI |
 | `components/Gallery.tsx`, `Footer.tsx` | uidesign | hecho | conservar a11y del lightbox |
@@ -227,3 +227,36 @@ _(vacío — formato: prioridad crítica|alta|media · archivo:línea · problem
   importados y montados en `App.tsx` (`ScrollProgress` tras `<CustomCursor />`,
   nav con `MagneticButton strength 0.15-0.2`), CONTRACTS §5 con los tres
   componentes nuevos y §7 sin solicitudes abiertas.
+- **[R2 · hero3d] H3.3 hecho: reactividad al scroll de la sección, parallax de
+  puntero refinado, entrada ligada a `preloader:done` (+ timeout 5 s) y
+  `MagneticButton` en el CTA; typecheck+build verdes. Hero 3D completo
+  (H3.1-H3.3).**
+  - `three/pointer.ts` pasa a ser el **estado compartido del hero**
+    (`HeroState`: puntero + `scroll` + `entrance`/`entranceAt`) con helpers puros
+    (`clamp`, `damp` independiente de fps, `entranceProgress` con ease-out que
+    llega **exacto a 1**). Es un objeto mutable único: cero allocations por evento
+    y por frame. (Se conserva el nombre del archivo por historia del proyecto.)
+  - **Scroll→cámara** (`Rig`): `scroll`/`resize` **nativos** con rAF-throttle en
+    `Hero3D` (CONTRACTS §4.2, sin depender de Lenis) escriben el progreso 0..1 de
+    `#inicio` (`-rect.top / rect.height`); la cámara retrocede (z +1,45), sube
+    (y +0,5), se desplaza de lado (−0,25) y baja un poco el punto de mira
+    (−0,2). Todo amortiguado en el `useFrame` (salto de ancla 0→1 ⇒ paso máximo
+    0,072/frame, sin overshoot) y reversible.
+  - **Puntero**: parallax ya existente refinado — `clamp` en la entrada y en el
+    offset de cámara (±0,6), amortiguación por `delta`, y se **suma** al offset de
+    scroll en lugar de competir con él (mezcla estable); el giro por hover
+    conserva su intensidad previa. Sin basura por frame.
+  - **Entrada** (`three/Entrance.tsx`, nuevo): la moto sube desde el fondo
+    (escala 0,9→1, y −0,22, z −0,95) y la cámara se asienta en paralelo; glow y
+    trazas suben de intensidad (`entranceProgress`), y la moto además se desplaza/
+    gira levemente con el scroll. Autorizada por `preloader:done`, por
+    `dataset.preloader === 'done'` al montar o por **timeout de seguridad de 5 s**;
+    listener retirado al desmontar. Con reduced motion: estado final sin animación.
+  - **CTA**: `MagneticButton` (uidesign, sin ediciones) con `strength={0.25}`,
+    mismo `onClick` (`scrollToSection('marcador')`) y misma a11y (`sr-only`), sin
+    cambios de diseño.
+  - Verificado además con Node (type stripping) sobre el módulo real: entrada
+    monótona 0→1 exacta, `damp` idéntico a 15/30/60 fps, sin overshoot.
+    `typecheck` + `build` **verdes** (835 ms; sigue el aviso de chunk `three`
+    >900 kB, ajeno). En móvil se mantienen `detailed={!mobile}`, dpr ≤ 1,75 y
+    `Environment` local. Sin dependencias nuevas ni solicitudes en §7.
