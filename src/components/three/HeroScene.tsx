@@ -1,4 +1,4 @@
-import { Suspense, type RefObject } from 'react';
+import { Suspense, useMemo, type RefObject } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei';
 import Bike from './Bike';
@@ -6,7 +6,8 @@ import Rig from './Rig';
 import Entrance from './Entrance';
 import HeroGlow from './Glow';
 import SpeedParticles from './SpeedParticles';
-import { useBreakpoint } from './useBreakpoint';
+import { HERO_POSES } from './heroLayout';
+import type { HeroTier } from './useBreakpoint';
 import type { HeroState } from './pointer';
 
 /**
@@ -19,29 +20,37 @@ import type { HeroState } from './pointer';
  * - Reactividad (H3.3) leída del estado compartido: `Rig` (cámara),
  *   `Entrance` (entrada + desplazamiento por scroll de la moto), glow y
  *   partículas. Todo ello se desactiva con reduced motion.
+ *
+ * El encuadre (cámara, sitio de la moto y plano de niebla) **no** se decide
+ * aquí: llega resuelto en `tier` desde `Hero3D` (único dueño de las media
+ * queries) y se lee de la tabla de tramos `HERO_POSES`. Así el DOM y la escena
+ * comparten el mismo tramo y no hay dos `matchMedia` que puedan discrepar.
  */
 
 interface HeroSceneProps {
   state: RefObject<HeroState>;
   reduced: boolean;
+  /** Tramo de composición resuelto por `Hero3D`. */
+  tier: HeroTier;
 }
 
-const MOBILE_CAM: [number, number, number] = [0, 1.6, 8.5];
-const DESKTOP_CAM: [number, number, number] = [0, 1.05, 5.6];
+export default function HeroScene({ state, reduced, tier }: HeroSceneProps) {
+  const pose = HERO_POSES[tier];
+  const mobile = tier === 'phone';
+  const [bikeX, bikeY] = pose.bike;
 
-export default function HeroScene({ state, reduced }: HeroSceneProps) {
-  const mobile = useBreakpoint('(max-width: 767px)');
-  const bikeX = mobile ? 0 : 1.15;
-  const bikeY = mobile ? -0.15 : 0;
+  // Objetos estables por tramo: R3F solo reaplica props cuando cambia la pose.
+  const camera = useMemo(() => ({ position: pose.cam, fov: 35 }), [pose]);
+  const shadow = useMemo<[number, number, number]>(() => [bikeX, 0.002, 0], [bikeX]);
 
   return (
     <Canvas
       dpr={[1, 1.75]}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
-      camera={{ position: mobile ? MOBILE_CAM : DESKTOP_CAM, fov: 35 }}
+      camera={camera}
       aria-hidden="true"
     >
-      <fog attach="fog" args={['#08080a', 8, 15]} />
+      <fog attach="fog" args={['#08080a', pose.fog[0], pose.fog[1]]} />
       <ambientLight intensity={0.5} />
       <directionalLight position={[4, 6, 4]} intensity={1.3} color="#f6f6f8" />
       <pointLight position={[-3, 1.4, -2]} intensity={14} distance={12} color="#ff4d00" />
@@ -49,14 +58,14 @@ export default function HeroScene({ state, reduced }: HeroSceneProps) {
       <directionalLight position={[-4, 2.4, -4]} intensity={0.55} color="#8ab4ff" />
 
       <Suspense fallback={null}>
-        <Rig state={state} mobile={mobile} reduced={reduced}>
+        <Rig state={state} pose={pose} reduced={reduced}>
           <Entrance state={state} reduced={reduced} x={bikeX} y={bikeY}>
             <Bike reduced={reduced} detailed={!mobile} />
           </Entrance>
         </Rig>
 
         <ContactShadows
-          position={[bikeX, 0.002, 0]}
+          position={shadow}
           scale={6}
           blur={2.4}
           far={1.4}

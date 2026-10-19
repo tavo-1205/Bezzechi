@@ -34,6 +34,38 @@ function flagGlyph(iso: string): string {
   return String.fromCodePoint(first.charCodeAt(0) + 127397, second.charCodeAt(0) + 127397);
 }
 
+/**
+ * Última carrera disputada, para nombrarla en el riel del marcador cuando no
+ * hay fin de semana activo. Cuenta como disputada cualquier ronda con estado
+ * `finished` o con `raceDate` ya pasada (aunque el estado llegue atrasado);
+ * se elige la más reciente por fecha de carrera (desempate: nº de ronda).
+ * Devuelve `null` si no hay datos utilizables → el pill usa su texto genérico.
+ */
+function pickLastRace(season: SeasonData): { name: string; round: number } | null {
+  const now = Date.now();
+  let best: { name: string; round: number; at: number } | null = null;
+
+  for (const round of season.rounds) {
+    const raceAt = Date.parse(round.raceDate);
+    const hasRaceAt = !Number.isNaN(raceAt);
+    const disputed =
+      round.status === 'finished' ||
+      (round.status !== 'upcoming' && hasRaceAt && raceAt <= now);
+    if (!disputed) continue;
+
+    const at = hasRaceAt ? raceAt : Number.NEGATIVE_INFINITY;
+    if (best !== null && (at < best.at || (at === best.at && round.round <= best.round))) {
+      continue;
+    }
+
+    const name = (round.name.trim() || round.country.trim()).replace(/\s+/g, ' ').trim();
+    if (name === '') continue; // sin nombre utilizable: se salta esta ronda
+    best = { name, round: round.round, at };
+  }
+
+  return best === null ? null : { name: best.name, round: best.round };
+}
+
 const BADGE_CLS =
   'num inline-flex shrink-0 items-center rounded-full bg-accent px-2.5 py-0.5 font-cond text-[11px] font-bold tracking-[0.08em] uppercase text-ink';
 
@@ -561,6 +593,10 @@ export default function LiveScoreboard(): ReactElement {
   const sourceMeta = source !== null ? SOURCE_META[source] : null;
   const isSnapshot = source === 'mock';
 
+  /* Riel: sin fin de semana activo, el pill nombra la última carrera
+     disputada (fallback: texto genérico si no hay datos utilizables). */
+  const lastRace = season !== null ? pickLastRace(season) : null;
+
   return (
     <section id="marcador" className="section scroll-mt-24" aria-labelledby="marcador-title">
       <div className="container-x">
@@ -589,7 +625,18 @@ export default function LiveScoreboard(): ReactElement {
                 ) : (
                   <span className="font-cond inline-flex items-center gap-2 rounded-full border border-line bg-carbon-2/60 px-3 py-1 text-xs tracking-[0.2em] text-ash uppercase">
                     <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-ash" />
-                    Última carrera disputada
+                    {lastRace !== null ? (
+                      /* Visible abreviado con «·»; el «·» se oculta del árbol de
+                         accesibilidad y se expone una frase legible en su lugar. */
+                      <>
+                        <span aria-hidden="true">Última · {lastRace.name}</span>
+                        <span className="sr-only">
+                          Última carrera disputada: {lastRace.name} (ronda {lastRace.round}).
+                        </span>
+                      </>
+                    ) : (
+                      'Última carrera disputada'
+                    )}
                   </span>
                 )}
 

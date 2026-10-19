@@ -9,6 +9,7 @@ import HeroScene from './three/HeroScene';
 import MagneticButton from './MagneticButton';
 import { scrollToSection } from '../lib/scroll';
 import { ENTRANCE_MS, clamp, createHeroState, type HeroState } from './three/pointer';
+import { isCompactTier, useHeroTier } from './three/useBreakpoint';
 
 /* --------------------------------------------------------------------------
  * Sección hero (#inicio) con escena 3D de fondo y tipografía encima.
@@ -22,6 +23,11 @@ import { ENTRANCE_MS, clamp, createHeroState, type HeroState } from './three/poi
  *   `dataset.preloader === 'done'` al montar, o timeout de seguridad de 5 s) el
  *   hero no arranca su animación de entrada; con reduced motion aparece ya en su
  *   estado final, sin animación.
+ * - Composición (responsive): este componente es el **único** dueño del tramo
+ *   (`useHeroTier`, media queries reales) y lo comparte con la escena. En el
+ *   tramo intermedio (768–1100 px) el titular se acorta y la moto se compone
+ *   abajo a la derecha, para que titular y moto se lean por separado; móvil
+ *   (< 768 px) y escritorio ancho (> 1100 px) quedan como estaban.
  * ------------------------------------------------------------------------ */
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -30,6 +36,10 @@ const ENTRANCE_TIMEOUT_MS = 5000;
 
 export default function Hero3D(): ReactElement {
   const reduced = useReducedMotion() ?? false;
+  // Tramo de composición (móvil / intermedio / escritorio ancho); se comparte
+  // con la escena 3D para que DOM y canvas nunca discrepen.
+  const tier = useHeroTier();
+  const compact = isCompactTier(tier);
   const stateRef = useRef<HeroState>(createHeroState());
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -160,7 +170,7 @@ export default function Hero3D(): ReactElement {
 
       {/* Capa 3D */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <HeroScene state={stateRef} reduced={reduced} />
+        <HeroScene state={stateRef} reduced={reduced} tier={tier} />
       </div>
 
       {/* Fade inferior para fundir con la siguiente sección */}
@@ -175,7 +185,14 @@ export default function Hero3D(): ReactElement {
           Aprilia Racing · #72 · RS-GP26
         </motion.p>
 
-        <h1 id="inicio-title" className="font-display mt-4 text-[clamp(2.6rem,9vw,7.5rem)] leading-[0.92] font-black tracking-tight text-mist">
+        {/* Titular: en el tramo intermedio se acorta (7vw) para dejar la mitad
+            derecha a la moto; fuera de él mantiene el tamaño de siempre. */}
+        <h1
+          id="inicio-title"
+          className={`font-display mt-4 leading-[0.92] font-black tracking-tight text-mist ${
+            compact ? 'text-[clamp(2.6rem,7vw,6.5rem)]' : 'text-[clamp(2.6rem,9vw,7.5rem)]'
+          }`}
+        >
           <motion.span className="block" {...clipReveal(0.15)}>
             MARCO
           </motion.span>
@@ -188,17 +205,25 @@ export default function Hero3D(): ReactElement {
           </motion.span>
         </h1>
 
-        <motion.p className="font-cond mt-6 max-w-xl text-base tracking-[0.16em] text-ash uppercase md:text-xl" {...fadeUp(0.45)}>
+        <motion.p
+          className={`font-cond mt-6 text-base tracking-[0.16em] text-ash uppercase md:text-xl ${
+            compact ? 'max-w-sm' : 'max-w-xl'
+          }`}
+          {...fadeUp(0.45)}
+        >
           Piloto de Aprilia Racing sobre la RS-GP26 en el Mundial MotoGP™ 2026
         </motion.p>
 
-        <motion.div {...fadeUp(0.6)}>
+        {/* `w-fit` en el wrapper + `flex` en el botón: la caja del indicador
+            arranca exactamente en el borde de contenido de `container-x`
+            (mismo eje que el titular), sin depender del flujo en línea. */}
+        <motion.div className="w-fit" {...fadeUp(0.6)}>
           {/* `MagneticButton` (uidesign, CONTRACTS §5): mismo onClick/a11y de antes,
               atracción sutil (0.25); se desactiva con reduced motion y puntero grueso. */}
           <MagneticButton
             onClick={() => scrollToSection('marcador')}
             strength={0.25}
-            className="group mt-14 inline-flex w-fit items-center gap-4"
+            className="group mt-14 flex items-center gap-4"
           >
             <span className="font-cond text-[0.72rem] tracking-[0.35em] text-ash uppercase transition-colors group-hover:text-mist">
               Desliza

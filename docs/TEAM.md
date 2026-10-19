@@ -89,13 +89,13 @@ prioriza en §8 (crítica / alta / media) → especialistas corrigen → se repi
 | `src/index.css` | Director | en curso | import de `extras.css` ya hecho |
 | `src/styles/extras.css` | uidesign | hecho | clases con prefijo `x-` |
 | `App.tsx`, `main.tsx`, `index.html` | Director | pendiente | único integrador |
-| `components/Hero3D.tsx`, `components/three/**` | hero3d | hecho | H3.1-H3.3 completos: moto, trazas+glow, reactividad (scroll/puntero/entrada con `preloader:done`) y `MagneticButton` en el CTA (§9 R2) |
+| `components/Hero3D.tsx`, `components/three/**` | hero3d | hecho | H3.1-H3.3 completos: moto, trazas+glow, reactividad (scroll/puntero/entrada con `preloader:done`) y `MagneticButton` en el CTA (§9 R2). R4b: tramo intermedio 768-1100 px (`HeroTier` + `HERO_POSES`) → titular y moto separados (§9 R4b) |
 | `components/Preloader.tsx` (nuevo) | uidesign | hecho | emisor `preloader:done` |
 | `components/TiltCard.tsx`, `SectionHeading.tsx` | uidesign | hecho | primitivas de UI |
 | `components/Gallery.tsx`, `Footer.tsx` | uidesign | hecho | conservar a11y del lightbox |
 | `components/MagneticButton.tsx` (nuevo) | uidesign | hecho | atracción al puntero (lerp + `translate3d`) |
 | `lib/scroll.ts`, `components/Timeline.tsx`, `Calendar.tsx`, `components/ScrollProgress.tsx` (nuevo, sin montar) | scrollfx | en curso | R1b: Lenis detenido hasta `preloader:done` · pin/scrub + moto · `ScrollProgress` pendiente de montar por el Director |
-| `components/LiveScoreboard.tsx`, `StatsCharts.tsx`, `CareerStats.tsx` | livedata | en curso | estilo cabina |
+| `components/LiveScoreboard.tsx`, `StatsCharts.tsx`, `CareerStats.tsx` | livedata | en curso | estilo cabina; R4b: el pill "Última" nombra la última carrera disputada (fallback genérico) |
 | `data/api.ts`, `data/snapshot.json` | — | **congelado** | no editar |
 | `data/content.ts` | Director | **congelado** | solo con solicitud aprobada |
 | `server/**`, `vite.config.ts`, `scripts/**`, `README.md` | Director | pendiente | README al final |
@@ -368,3 +368,67 @@ Limitaciones registradas: no hay herramienta de emulación de dispositivo/ancho 
     (keys estables), con triggers atados a nodos vivos.
   - `typecheck` + `build` **verdes** (864 ms; aviso de chunk `three` >900 kB
     preexistente y ajeno). Sin dependencias nuevas ni ediciones ajenas.
+- **[R4b · hero3d] Tramo intermedio del hero (768–1100 px): composición propia
+  "titular + moto" sin solape; tipo intermedio/Desliza alineado; typecheck+build
+  verdes.**
+  - `three/useBreakpoint.ts` reescrito: `HeroTier`
+    (`phone` | `compact` | `compact-portrait` | `wide`) con **4 media queries
+    reales mutuamente excluyentes** (`(min-width:768px) and (max-width:1100px)`
+    × `orientation`; `wide` = `(min-width:1101px)`). Un `MediaQueryList` por
+    tramo con `change`, más `resize` como red de seguridad, ambos rAF-throttled
+    y liberados en el cleanup; `commit` **solo** llama a `setState` si el tramo
+    cambia (un `resize` que no cruza ningún límite no re-renderiza el hero ni la
+    escena 3D). Se elimina el viejo `useBreakpoint` (su único consumidor era
+    `HeroScene`).
+  - `three/heroLayout.ts` (nuevo): tabla `HERO_POSES` con cámara + sitio de la
+    moto + plano de niebla por tramo. `phone` y `wide` repiten **exactamente**
+    los valores anteriores (`[0,1.6,8.5]` / moto `0,−0,15` / niebla 8-15 y
+    `[0,1.05,5.6]` / moto `1,15,0` / niebla 8-15) → **móvil y escritorio ancho
+    intactos**. `compact` (apaisado): cámara `[0,1.3,8.4]`, moto `[1.55,−0.12]`,
+    niebla 13-22; `compact-portrait`: cámara `[0,1.45,14]`, moto `[1.9,−0.1]`,
+    niebla 16-25 (lienzo estrecho → más distancia y más desplazamiento). La
+    niebla acompaña a la cámara para que la moto no se apague al fondo.
+  - `Hero3D.tsx` pasa a ser el **único dueño del tramo** y lo comparte con
+    `HeroScene`/`Rig` (antes cada uno resolvía su `matchMedia` por su cuenta):
+    titular `clamp(2.6rem,7vw,6.5rem)` y subtítulo `max-w-sm` en compact
+    (`9vw/7.5rem` y `max-w-xl` fuera de él). `Rig` recibe la pose en lugar de
+    tener su propia cámara base (misma reactividad, sin allocations por frame).
+  - **Medición del encuadre** (proyección real de la cámara, fov 35, y anchos
+    reales de Orbitron 900 leídos del WOFF de Google Fonts: "BEZZECCHI" =
+    6,490 em con `tracking-tight`): a **800×656** (evidencia del Director) el
+    titular acaba en **403 px** y la caja de la moto empieza en **444 px** →
+    **40 px de aire**, moto entera dentro del lienzo y **0 solape** con
+    subtítulo y CTA; 42-58 px de aire en todo el rango apaisado (769→1100 px) y
+    76-115 px en vertical (768→1024 px). Para comparar: en el tramo ancho la
+    caja de la moto arranca *antes* del final del titular (composición que el
+    Director da por buena), así que la medida es conservadora.
+  - "Desliza": el indicador ya vivía dentro de `container-x` (mismo eje de
+    40 px que el titular), así que **no he reproducido el `left = 0`** medido
+    (probablemente se midió otro nodo del hero). Aun así queda blindado: wrapper
+    `motion.div` → `w-fit` y botón `flex` (antes `inline-flex w-fit`), de modo
+    que la caja del indicador arranca **por construcción** en el borde de
+    contenido de `container-x`. Se agradece re-medir `#inicio button` frente al
+    `h1` en runtime.
+  - Sin dependencias nuevas; partículas, glow, materiales y reactividad **sin
+    tocar**. `typecheck` + `build` en **verde** (801 ms; se mantiene el aviso de
+    chunk `three` >900 kB, QA-01, ajeno).
+- **[R4b · livedata]** Riel del marcador: cuando NO hay fin de semana activo
+  (`raceWeekend.active === false`), el pill ya no dice solo "Última carrera
+  disputada" (sonaba a estado vacío) sino que **nombra la última carrera
+  disputada**: `pickLastRace()` en `src/components/LiveScoreboard.tsx` elige de
+  `season.rounds` la ronda más reciente con `status === 'finished'` o `raceDate`
+  ya pasada (desempate por nº de ronda; nombre = `round.name` colapsando
+  espacios con `round.country` de apoyo). Visible: `Última · PERTAMINA GRAND
+  PRIX OF INDONESIA` —misma nomenclatura que el pill EN VIVO, que ya usa el
+  nombre patrocinado del servidor (`raceWeekend.name`)—; el «·» va
+  `aria-hidden` y se expone un `sr-only` legible ("Última carrera disputada:
+  <GP> (ronda N)."). Sin datos utilizables → **fallback** al texto genérico
+  anterior (el pill nunca queda vacío; el caso en vivo con `.live-dot` intacto).
+  Sin cambios de clases/colores → contraste AA del pill intacto (ash sobre
+  carbon-2 ≈ 6,6:1; medición runtime R4: 0 textos < 4,5:1). Verificado con Node
+  sobre el snapshot real: elige R17 Indonesia (coherente con el R17/22 del
+  riel), sin ninguna disputada → null → fallback. `api.ts` congelado e intacto,
+  sin dependencias nuevas; typecheck+build **verdes** (el primer typecheck chocó
+  con una edición en paralelo de hero3d en `three/HeroScene.tsx`, ajena; verde
+  al reintentar según la regla 2. Se mantiene el aviso preexistente de chunk
+  `three` >900 kB, QA-01 aceptada).

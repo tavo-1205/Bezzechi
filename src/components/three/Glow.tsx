@@ -18,7 +18,7 @@ import { damp, entranceProgress, type HeroState } from './pointer';
  */
 
 interface HeroGlowProps {
-  /** Centro X de la moto en la escena (móvil = 0, escritorio ≈ 1,15). */
+  /** Centro X de la moto en la escena (depende del tramo: ver `HERO_POSES`). */
   x: number;
   reduced: boolean;
   state: RefObject<HeroState>;

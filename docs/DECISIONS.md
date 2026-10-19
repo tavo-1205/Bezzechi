@@ -67,3 +67,33 @@ Registro de decisiones del Director. Las reglas de colaboración están en
   `preloader:done` emitido y overlay retirado; 6 secciones en `main`;
   `overflowPx` = 120 en el documento con `body { overflow-x: hidden }` → posible
   incidencia media de desbordamiento para QA.
+
+## 2026-10-19 · Ronda 4 (correcciones QA) y verificación runtime
+
+- **El tab pasó a visible** durante la sesión (`visibilityState: "visible"`):
+  `browser.screenshot` y `browser.lighthouse` ya funcionan. Las 7 capturas quedan
+  en `%LOCALAPPDATA%\Temp\opencode\capturas\` (hero, marcador, trayectoria,
+  estadisticas, calendario, galeria, fullpage).
+- **Verificación runtime del Director** (vw = 800 px): 0 errores/rechazos JS al
+  recorrer las 6 secciones; Lighthouse accesibilidad **1.00**, buenas prácticas
+  **1.00**, SEO **1.00**, `failures: []` (la herramienta no da score de
+  rendimiento); `scrollWidth - innerWidth = -15 px` (ancho del scrollbar) → 0
+  desbordamiento; `grid-template-areas` del semáforo válido; **0** textos ≤ 12,5 px
+  por debajo de 4,5:1; scroll restaurado en reposo; FCP 212 ms / DCL 172 ms.
+- **QA-01 (chunk `three` 970 kB) → ACEPTADA y documentada**: es el chunk diferido
+  del hero (`React.lazy`); three.js no se parte sin coste de mantenimiento y el
+  aviso es solo un umbral. No se instala nada ni se sube el límite a ciegas.
+- **QA-04 → CERRADA como no-incidencia**: el `h1` expone "MARCO BEZZECCHI" (CSS
+  uppercase). Un `aria-label` en minúsculas violaría WCAG 2.5.3 (*label in name*)
+  porque el texto visible es ese mismo. Sin cambios.
+- **QA-07 → VERIFICADA sin incidencia** (0 textos por debajo de 4,5:1 en runtime).
+- **QA-02/QA-03/QA-05/QA-09 → corregidas**: uidesign (semáforo rectangular,
+  recorte del carrusel con `overflow-x-hidden`, transform del botón magnético solo
+  desde el bucle) y hero3d (contenedor del "72" con `inset-0` + `overflow-hidden`).
+  **QA-06/QA-08/QA-10 → verificadas/corregidas** por scrollfx.
+- **Revisor visual**: subagente con modelo de visión
+  `opencode/nemotron-3.5-super-vl-free` sobre las capturas (petición explícita del
+  usuario de un revisor visual con capturas; el Director no puede leer imágenes).
+- **Limitación que se mantiene**: no existe herramienta de emulación de
+  dispositivo/ancho en este entorno → el responsive móvil se verifica por CSS
+  (breakpoints `sm/md/lg/xl` + `clamp`), no por captura.

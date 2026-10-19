@@ -1,7 +1,8 @@
-import { useMemo, useRef, type ReactNode, type RefObject } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { clamp, damp, entranceProgress, type HeroState } from './pointer';
+import type { HeroPose } from './heroLayout';
 
 /**
  * Rig de cámara + balanceo de la moto. Mezcla **estable** de dos reactividades
@@ -14,26 +15,21 @@ import { clamp, damp, entranceProgress, type HeroState } from './pointer';
  * Al balanceo continuo (senos de periodo largo) se le suma el giro por hover y
  * el desplazamiento lateral del puntero.
  *
- * Con `prefers-reduced-motion` la cámara queda fija y no se lee el estado.
+ * La cámara **base** ya no vive aquí: llega en `pose` (tabla de tramos de
+ * `heroLayout`), así que la cámara se coloca en cada frame sin allocations y la
+ * reactividad se suma siempre a la puesta en escena correcta.
+ *
+ * Con `prefers-reduced-motion` la cámara queda fija en la base de su tramo y no
+ * se lee el estado.
  */
 
 interface RigProps {
   state: RefObject<HeroState>;
-  mobile: boolean;
+  /** Puesta en escena del tramo actual (cámara base + punto de mira). */
+  pose: HeroPose;
   reduced: boolean;
   children: ReactNode;
 }
-
-interface CameraBase {
-  x: number;
-  y: number;
-  z: number;
-  tx: number;
-  ty: number;
-}
-
-const DESKTOP: CameraBase = { x: 0, y: 1.05, z: 5.6, tx: 0, ty: 0.6 };
-const PHONE: CameraBase = { x: 0, y: 1.6, z: 8.5, tx: 0, ty: 1 };
 
 /* Amplitudes (todo deliberadamente pequeño: la escena se ve, no se mueve). */
 const POINTER_X = 0.55;
@@ -46,17 +42,17 @@ const SCROLL_LOOK = 0.2;
 const ENTRANCE_DOLLY = 0.65;
 const ENTRANCE_RISE = 0.2;
 
-export default function Rig({ state, mobile, reduced, children }: RigProps) {
+export default function Rig({ state, pose, reduced, children }: RigProps) {
   const groupRef = useRef<Group>(null);
   const smooth = useRef({ x: 0, y: 0, scroll: 0 });
-  const base = useMemo<CameraBase>(() => (mobile ? PHONE : DESKTOP), [mobile]);
 
   useFrame((frame, delta) => {
     const camera = frame.camera;
+    const [camX, camY, camZ] = pose.cam;
 
     if (reduced) {
-      camera.position.set(base.x, base.y, base.z);
-      camera.lookAt(base.tx, base.ty, 0);
+      camera.position.set(camX, camY, camZ);
+      camera.lookAt(0, pose.lookY, 0);
       return;
     }
 
@@ -81,11 +77,11 @@ export default function Rig({ state, mobile, reduced, children }: RigProps) {
     const idleY = Math.sin(t * 0.35) * 0.05;
 
     camera.position.set(
-      base.x + offsetX - p * SCROLL_SIDE,
-      base.y + offsetY + idleY + p * SCROLL_RISE + (1 - entrance) * ENTRANCE_RISE,
-      base.z + p * SCROLL_DOLLY + (1 - entrance) * ENTRANCE_DOLLY,
+      camX + offsetX - p * SCROLL_SIDE,
+      camY + offsetY + idleY + p * SCROLL_RISE + (1 - entrance) * ENTRANCE_RISE,
+      camZ + p * SCROLL_DOLLY + (1 - entrance) * ENTRANCE_DOLLY,
     );
-    camera.lookAt(base.tx, base.ty - p * SCROLL_LOOK, 0);
+    camera.lookAt(0, pose.lookY - p * SCROLL_LOOK, 0);
 
     const group = groupRef.current;
     if (group) {

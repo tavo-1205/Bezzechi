@@ -19,7 +19,7 @@ import { clamp, damp, entranceProgress, type HeroState } from './pointer';
 interface EntranceProps {
   state: RefObject<HeroState>;
   reduced: boolean;
-  /** Posición base del grupo de la moto (móvil 0 / escritorio ≈ 1,15). */
+  /** Posición base del grupo de la moto (depende del tramo: ver `HERO_POSES`). */
   x: number;
   y: number;
   children: ReactNode;

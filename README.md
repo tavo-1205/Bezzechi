@@ -60,28 +60,61 @@ npm run snapshot   # regenera src/data/snapshot.json desde la API real
 │  ├─ api.d.mts                # tipos del módulo JS para TS estricto
 │  └─ index.mjs                # servidor Express de producción (estáticos + /api)
 ├─ scripts/fetch-snapshot.mjs  # genera el fallback offline desde la API real
+├─ docs/                       # documentación del rediseño (equipo, contratos, decisiones)
+│  ├─ TEAM.md                  # rondas, propiedad de archivos, incidencias QA y bitácora
+│  ├─ CONTRACTS.md             # tokens, evento preloader:done, API de scroll, interfaces
+│  └─ DECISIONS.md             # decisiones tomadas y limitaciones de verificación
 └─ src/
    ├─ main.tsx                 # montaje de React (StrictMode)
-   ├─ App.tsx                  # shell: cursor personalizado, nav, Lenis, secciones
-   ├─ index.css                # tema Tailwind 4 (paleta Aprilia, clases base, reduced-motion)
+   ├─ App.tsx                  # shell: preloader, barra de progreso, cursor, nav, Lenis, secciones
+   ├─ index.css                # tema Tailwind 4 (paleta Aprilia, tokens, clases base, reduced-motion)
+   ├─ styles/extras.css        # capas y efectos del rediseño (prefijo .x-)
    ├─ lib/scroll.ts            # Lenis + GSAP ScrollTrigger, scrollToSection, stopScroll
    ├─ data/
    │  ├─ api.ts                # capa de datos del cliente (fetch /api → localStorage → snapshot)
    │  ├─ content.ts            # copy estático: timeline, stats de carrera, galería, enlaces
    │  └─ snapshot.json         # fallback offline con datos reales de 2026
    └─ components/
+      ├─ Preloader.tsx         # preloader de semáforo (emite preloader:done)
+      ├─ ScrollProgress.tsx    # barra de progreso tipo circuito + marcador
+      ├─ MagneticButton.tsx    # botones y CTA magnéticos (solo puntero fino)
       ├─ Hero3D.tsx            # hero a pantalla completa + escena R3F
-      ├─ three/                # moto procedural, partículas de velocidad, rig de cámara
-      ├─ LiveScoreboard.tsx    # marcador con odómetro, EN VIVO y estados
+      ├─ three/                # moto procedural, librea, partículas, glow y rig de cámara
+      ├─ LiveScoreboard.tsx    # marcador cabina: odómetro, EN VIVO, estados y Top 5
       ├─ StatsCharts.tsx       # gráfica de evolución de puntos (Recharts)
       ├─ TiltCard.tsx          # tarjetas con efecto tilt 3D
       ├─ CareerStats.tsx       # sección #estadisticas (lazy: Recharts fuera del bundle base)
-      ├─ Timeline.tsx          # trayectoria animada (GSAP ScrollTrigger)
+      ├─ Timeline.tsx          # trayectoria animada (GSAP ScrollTrigger, pin + scrub)
       ├─ Calendar.tsx          # calendario 2026 + cuenta atrás
       ├─ Gallery.tsx           # carrusel 3D + lightbox (Wikimedia Commons)
       ├─ SectionHeading.tsx    # encabezados de sección + Reveal
       └─ Footer.tsx            # redes oficiales, aviso legal y atribuciones
 ```
+
+## Diseño · «recorrido por el circuito»
+
+El rediseño convierte la página en un recorrido continuo, de la parrilla a la meta:
+
+- **Preloader de semáforo**: al cargar se encienden las luces; al apagarse emite
+  `preloader:done` —el evento del que dependen Lenis y la entrada del hero— y se retira
+  del DOM (sin trampa de foco permanente).
+- **Hero 3D reactivo**: moto procedural con la librea #72, partículas de velocidad y
+  halo aditivo. La cámara responde al puntero y al progreso de scroll, y la moto entra
+  al recibir `preloader:done`. Un tier `compact` (768–1100 px) reencuadra la escena
+  para que el titular gigante no se coma la moto.
+- **Scroll tipo circuito**: Lenis + GSAP, `pin`/`scrub` en la trayectoria, transiciones
+  entre secciones y barra de progreso superior con marcador.
+- **Marcador cabina**: *pit-board* con odómetro, chip de procedencia
+  (directo/caché/snapshot), esqueleto de carga, estado de error reintentable y Top 5.
+- **Trayectoria y calendario**: timeline con la moto recorriendo la línea y cuenta
+  atrás en vivo de la próxima carrera (con el nombre de la última disputada).
+- **Galería inmersiva**: carrusel *coverflow* con lightbox (trampa de foco, `Esc`) y
+  atribuciones de Wikimedia Commons.
+- **Microinteracciones**: cursor personalizado y botones magnéticos (solo en puntero
+  fino). Todo el movimiento se desactiva con `prefers-reduced-motion`.
+
+El proceso (rondas, propiedad de archivos, incidencias y decisiones) está documentado en
+`docs/TEAM.md`, `docs/CONTRACTS.md` y `docs/DECISIONS.md`.
 
 ## Fuente de datos
 
@@ -122,6 +155,10 @@ hace **un único polling compartido** (60 s en calma, 15 s en fin de semana).
 - HTML semántico (`section`/`article`/`nav`), skip-link, `aria-live` solo donde aporta,
   foco visible, alt e imágenes `lazy`, cursor personalizado solo en puntero fino.
 - Auditoría Lighthouse: **accesibilidad 100 · buenas prácticas 100 · SEO 100** (0 fallos).
+- Verificado en runtime: 0 errores de consola recorriendo las 6 secciones y 0 px de
+  desbordamiento horizontal (capturas de revisión en `%LOCALAPPDATA%\Temp\opencode\capturas\`).
+- Aviso de build conocido: el chunk diferido `three` (~970 kB, gzip ~262 kB) supera el
+  umbral de 900 kB; se carga con `lazy` solo para el hero y no bloquea el resto.
 
 ## Despliegue
 
