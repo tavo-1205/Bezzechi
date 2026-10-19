@@ -87,14 +87,14 @@ prioriza en §8 (crítica / alta / media) → especialistas corrigen → se repi
 |---|---|---|---|
 | `docs/TEAM.md`, `docs/CONTRACTS.md`, `docs/DECISIONS.md` | Director | **hecho** | Ronda 0 + PASO 0 |
 | `src/index.css` | Director | en curso | import de `extras.css` ya hecho |
-| `src/styles/extras.css` | uidesign | pendiente | clases con prefijo `x-` |
+| `src/styles/extras.css` | uidesign | hecho | clases con prefijo `x-` |
 | `App.tsx`, `main.tsx`, `index.html` | Director | pendiente | único integrador |
-| `components/Hero3D.tsx`, `components/three/**` | hero3d | pendiente | pasos §6 |
-| `components/Preloader.tsx` (nuevo) | uidesign | pendiente | emisor `preloader:done` |
-| `components/TiltCard.tsx`, `SectionHeading.tsx` | uidesign | pendiente | primitivas de UI |
-| `components/Gallery.tsx`, `Footer.tsx` | uidesign | pendiente | conservar a11y del lightbox |
+| `components/Hero3D.tsx`, `components/three/**` | hero3d | en curso | H3.1 hecho; espera revisión del Director (§9) |
+| `components/Preloader.tsx` (nuevo) | uidesign | hecho | emisor `preloader:done` |
+| `components/TiltCard.tsx`, `SectionHeading.tsx` | uidesign | hecho | primitivas de UI |
+| `components/Gallery.tsx`, `Footer.tsx` | uidesign | hecho | conservar a11y del lightbox |
 | `lib/scroll.ts`, `components/Timeline.tsx`, `Calendar.tsx` | scrollfx | pendiente | espera `preloader:done` |
-| `components/LiveScoreboard.tsx`, `StatsCharts.tsx`, `CareerStats.tsx` | livedata | pendiente | estilo cabina |
+| `components/LiveScoreboard.tsx`, `StatsCharts.tsx`, `CareerStats.tsx` | livedata | en curso | estilo cabina |
 | `data/api.ts`, `data/snapshot.json` | — | **congelado** | no editar |
 | `data/content.ts` | Director | **congelado** | solo con solicitud aprobada |
 | `server/**`, `vite.config.ts`, `scripts/**`, `README.md` | Director | pendiente | README al final |
@@ -112,7 +112,8 @@ prioriza en §8 (crítica / alta / media) → especialistas corrigen → se repi
 
 ## 7 · Solicitudes al Director
 
-_(vacío)_
+- **[R1a · livedata] RESUELTA:** firma completa de `StatsCharts` (con `compact?`)
+  reflejada en CONTRACTS §5. Sin más solicitudes abiertas.
 
 ## 8 · Incidencias QA
 
@@ -124,3 +125,34 @@ _(vacío — formato: prioridad crítica|alta|media · archivo:línea · problem
   `index.css`; agentes actualizados (pasos 3D, preloader:done, extras.css, QA).
 - **[PASO 0 · Director]** `opencode.json` (permisos V2) y `.gitignore` creados;
   git instalado + repo inicializado; commit `7b75caf "antes del rediseño"`.
+- **[R1a · hero3d]** H3.1 hecho: materiales con clearcoat/envMapIntensity
+  (pintura, fibra, caucho, acero de disco) + texturas procedurales nuevas
+  (`three/textures.ts`: carbono twill, caucho, disco perforado), livery `72` con
+  cursiva + BEZZECCHI/APRILIA RACING, y close-ups: discos+portadiscos+pinzas
+  radiales (3), llantas de 5 radios, horquilla con portapinzas y tapones de
+  precarga, manetas, cadena/corona, amortiguador con muelle, estriberas,
+  guardabarros, aros de acento en nariz/escape/cárteres, tapón de combustible y
+  contraluz frío; en móvil `detailed={false}` (menos draw calls). Sin tocar
+  partículas (H3.2) ni reactividad/entrada (H3.3). `npm run typecheck` y
+  `npm run build` en **verde** (build 679 ms; el aviso de chunk `three` >900 kB
+  es ajeno a H3.1; un primer build falló por errores TS de `Preloader.tsx`, ya
+  corregidos por uidesign). Espero revisión del Director.
+- **[R1a · uidesign]** Preloader (semáforo rojo→doble ámbar→verde ≈2,2 s, `preloader:done`
+  1 vez, timeout 4 s, reduced-motion instant), TiltCard verificado sin cambios de props,
+  SectionHeading con reveal de entrada, Gallery coverflow 3D con lightbox a11y intacta y
+  Footer parque cerrado; extras.css con clases `x-`; typecheck + build verdes.
+- **[R1a · livedata]** Marcador con acabado pit-board: riel de estado (EN VIVO con
+  `live-dot`, chip de procedencia directo/caché/snapshot y `formatLastUpdate` con
+  `aria-live`, "Sincronizando…" durante el polling), skeleton con etiqueta HUD,
+  panel de error "Sin señal" con reintento, aviso de caché/snapshot diferenciados
+  por texto+color, odómetro de posición/puntos y **reordenación animada de la Top 5**
+  (`motion.li layout`, anulada con reduced-motion) con fila #72 destacada en accent;
+  `StatsCharts` con riel de lectura (cifras `.num`), eje Y en pts, ticks de ejes en
+  `.font-cond`+tabular y tooltip sólido AA; `CareerStats` con índice "01/06",
+  contraste de bordes, riel de fuente/hora y esqueleto de la gráfica. `api.ts`
+  intacto; typecheck + build **verdes**.
+- **[R1a · Director]** Integración: `<Preloader />` montado en `App.tsx` (eager,
+  tras el skip-link), tokens `signal-red/amber/green` añadidos a `index.css`
+  (aprobados), CONTRACTS §5 actualizado (`compact?`) y solicitud de livedata
+  cerrada en §7. Pendiente: typecheck+build+commit de cierre de R1a y revisión
+  visual de H3.1 antes de autorizar H3.2.

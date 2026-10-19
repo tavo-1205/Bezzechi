@@ -10,7 +10,8 @@ import type { HeroPointer } from './pointer';
 /**
  * Composición de la escena 3D del hero:
  * - Iluminación con <Environment> + <Lightformer> locales (sin HDR externo).
- * - Moto procedural con sombra de contacto.
+ * - Moto procedural con sombra de contacto; en móvil se pide detalle reducido
+ *   a `Bike` (menos draw calls) manteniendo los mismos materiales.
  * - Trazas de velocidad instanciadas (ausentes con reduced motion).
  */
 
@@ -37,11 +38,13 @@ export default function HeroScene({ pointerRef, reduced }: HeroSceneProps) {
       <ambientLight intensity={0.5} />
       <directionalLight position={[4, 6, 4]} intensity={1.3} color="#f6f6f8" />
       <pointLight position={[-3, 1.4, -2]} intensity={14} distance={12} color="#ff4d00" />
+      {/* Contraluz frío: perfila el carbono y el metal en el close-up. */}
+      <directionalLight position={[-4, 2.4, -4]} intensity={0.55} color="#8ab4ff" />
 
       <Suspense fallback={null}>
         <Rig pointerRef={pointerRef} mobile={mobile} reduced={reduced}>
           <group position={[bikeX, mobile ? -0.15 : 0, 0]}>
-            <Bike reduced={reduced} />
+            <Bike reduced={reduced} detailed={!mobile} />
           </group>
         </Rig>
 

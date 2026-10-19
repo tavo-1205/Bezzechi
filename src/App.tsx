@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { NAV_LINKS } from './data/content';
 import { formatLastUpdate, getBezzecchi, useLiveData } from './data/api';
 import { initSmoothScroll, scrollToSection } from './lib/scroll';
+import Preloader from './components/Preloader';
 
 /* --------------------------------------------------------------------------
  * Shell de la landing.
@@ -243,6 +244,7 @@ export default function App() {
 
       <CustomCursor />
       <Navbar />
+      <Preloader />
 
       <main id="main">
         {/* 1 · HERO 3D (carga diferida) */}

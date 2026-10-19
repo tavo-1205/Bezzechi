@@ -178,7 +178,7 @@ export default function Gallery(): ReactElement {
   };
 
   return (
-    <section id="galeria" className="section scroll-mt-24" aria-labelledby="galeria-title">
+    <section id="galeria" className="section scroll-mt-24" aria-label="Galería de fotos de Marco Bezzecchi">
       <div className="grid-bg pointer-events-none absolute inset-0 opacity-40" aria-hidden="true" />
 
       <div className="container-x relative">

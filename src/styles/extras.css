@@ -9,5 +9,192 @@
    =========================================================================== */
 
 @layer components {
-  /* Aquí van las clases del rediseño: .x-preloader, .x-spotlight, .x-hud… */
+  /* ------------------------------------------------------------------------
+     Preloader: semáforo de salida MotoGP (CONTRACTS §4.1).
+     JS controla los estados; este CSS solo pinta y transiciona.
+     ------------------------------------------------------------------------ */
+
+  .x-preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    background-color: var(--color-ink);
+    color: var(--color-mist);
+    transition:
+      opacity 0.6s ease,
+      visibility 0.6s ease;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* JS añade .fading tras emitir `preloader:done`; el overlay se retira del
+     DOM nada más terminar la transición (sin trampa de foco permanente). */
+  .x-preloader.fading {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .x-traffic-light {
+    display: grid;
+    grid-template-areas:
+      "red"
+      "amberL amberR"
+      "green";
+    gap: 1rem;
+    padding: 1.75rem 1.5rem 1.5rem;
+    border: 1px solid var(--color-line);
+    border-radius: 1rem;
+    background: linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0.01)
+    );
+    box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  }
+
+  .x-light {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 1px solid var(--color-line);
+    background-color: #111;
+    justify-self: center;
+    transition:
+      background-color 0.35s ease,
+      box-shadow 0.35s ease,
+      filter 0.35s ease;
+  }
+
+  .x-light--red {
+    grid-area: red;
+  }
+  .x-light--amberL {
+    grid-area: amberL;
+  }
+  .x-light--amberR {
+    grid-area: amberR;
+  }
+  .x-light--green {
+    grid-area: green;
+  }
+
+  .x-light--on {
+    filter: brightness(1.15);
+    box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.35);
+  }
+
+  /* Rojo = acento Aprilia; ámbar/verde se mapean a tokens existentes
+     (accent-300 y mist) hasta que el Director apruebe tokens propios. */
+  .x-light--on.x-red {
+    background-color: var(--color-accent);
+    box-shadow: 0 0 28px var(--color-accent), inset 0 0 16px rgba(255, 255, 255, 0.35);
+  }
+  .x-light--on.x-amber {
+    background-color: var(--color-accent-300);
+    box-shadow: 0 0 28px var(--color-accent-300), inset 0 0 16px rgba(255, 255, 255, 0.35);
+  }
+  .x-light--on.x-green {
+    background-color: var(--color-mist);
+    box-shadow: 0 0 32px var(--color-mist), inset 0 0 16px rgba(255, 255, 255, 0.5);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .x-preloader,
+    .x-light {
+      transition: none !important;
+      animation: none !important;
+    }
+    .x-preloader.fading {
+      opacity: 0 !important;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Spotlight opcional para tarjetas (segundo plano del puntero).
+     ------------------------------------------------------------------------ */
+
+  .x-spotlight {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 300px;
+    margin: -150px 0 0 -150px;
+    border-radius: 999px;
+    pointer-events: none;
+    background: radial-gradient(
+      600px circle at center,
+      rgba(255, 138, 61, 0.16),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .x-spotlight--on {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .x-spotlight {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Línea HUB: subrayado animado al estilo tablero de boxes.
+     ------------------------------------------------------------------------ */
+
+  .x-hud-line {
+    position: relative;
+    width: max-content;
+  }
+
+  .x-hud-line::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--color-accent);
+    transition: width 0.7s ease;
+  }
+
+  .x-hud-line--drawn::after {
+    width: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .x-hud-line::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Acabado "parque cerrado" para el footer: patrón de bandera a cuadros
+     muy sutil (sin tokens nuevos: blanco sobre carbón al 4 %).
+     ------------------------------------------------------------------------ */
+
+  .x-park-ferme {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .x-park-ferme::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 20px 20px;
+    -webkit-mask-image: radial-gradient(circle at 50% 0%, #000 40%, transparent 72%);
+    mask-image: radial-gradient(circle at 50% 0%, #000 40%, transparent 72%);
+    pointer-events: none;
+  }
 }

@@ -1,10 +1,12 @@
 /**
- * StatsCharts — evolución de puntos de la temporada.
+ * StatsCharts — evolución de puntos de temporada, con acabado de telemetría.
  *
  * Gráfica Recharts: área con gradiente de Bezzecchi + línea del líder,
- * tooltip personalizado con `.glass`, eje X con `shortName` y eje Y oculto.
- * `compact` reduce la altura y oculta la leyenda. Respeta `prefers-reduced-motion`
- * (sin animaciones de entrada) y ofrece un estado vacío amable.
+ * riel de lectura superior (cifras `.num` + etiquetas `.font-cond`), ejes con
+ * tipografía HUD y tooltip sólido y legible (contraste AA sobre carbono).
+ * `compact` reduce la altura y oculta el riel de lectura. Respeta
+ * `prefers-reduced-motion` (sin animaciones de entrada) y ofrece un estado
+ * vacío amable. Las props públicas NO cambian (CONTRACTS §5).
  */
 import { useId } from 'react';
 import type { ReactElement } from 'react';
@@ -13,19 +15,39 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Legend,
   Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-import type { TooltipContentProps } from 'recharts';
+import type { TooltipContentProps, XAxisTickContentProps, YAxisTickContentProps } from 'recharts';
 import type { EvolutionPoint } from '../data/api';
 
 const ACCENT = '#ff4d00';
 const MIST = '#f6f6f8';
 const ASH = '#9a9aa4';
+
+/** Etiqueta de eje estilo HUD: Barlow Condensed + cifras tabulares (`.num`). */
+const AXIS_TICK_CLS = 'fill-ash font-cond num text-[11px] tracking-[0.04em]';
+
+function XAxisTick(props: XAxisTickContentProps): ReactElement {
+  const value = props.payload?.value ?? '';
+  return (
+    <text x={props.x} y={props.y} dy={8} textAnchor={props.textAnchor} className={AXIS_TICK_CLS}>
+      {String(value)}
+    </text>
+  );
+}
+
+function YAxisTick(props: YAxisTickContentProps): ReactElement {
+  const value = props.payload?.value ?? '';
+  return (
+    <text x={props.x} y={props.y} dy={3} textAnchor={props.textAnchor} className={AXIS_TICK_CLS}>
+      {String(value)}
+    </text>
+  );
+}
 
 function ChartTooltip({ active, payload, label }: TooltipContentProps): ReactElement | null {
   if (!active || payload.length === 0) return null;
@@ -34,11 +56,15 @@ function ChartTooltip({ active, payload, label }: TooltipContentProps): ReactEle
   const roundName = typeof rawName === 'string' ? rawName : null;
 
   return (
-    <div className="glass rounded-lg px-3 py-2 shadow-xl">
+    /* Superficie sólida (ink 95 %) para garantizar AA sobre cualquier fondo */
+    <div
+      aria-hidden="true"
+      className="glass min-w-[9.5rem] rounded-lg border border-line/80 bg-ink/95 px-3 py-2 shadow-xl"
+    >
       <p className="font-cond text-[11px] tracking-[0.2em] text-ash uppercase">
         {roundName ?? String(label ?? '')}
         {roundName !== null && label !== undefined && label !== roundName ? (
-          <span className="ml-1.5 text-mist">· {label}</span>
+          <span className="ml-1.5 text-mist">· {String(label)}</span>
         ) : null}
       </p>
       <ul className="mt-1.5 space-y-1">
@@ -82,7 +108,7 @@ export function StatsCharts({
 
   if (evolution.length === 0) {
     return (
-      <div className="glass rounded-2xl p-8 text-center">
+      <div className="glass rounded-2xl p-8 text-center" role="status">
         <p className="font-cond text-xs tracking-[0.3em] text-accent uppercase">
           Aún sin evolución
         </p>
@@ -95,15 +121,60 @@ export function StatsCharts({
 
   const last = evolution[evolution.length - 1];
   const height = compact ? 220 : 320;
+
+  const gap = last.leaderPoints - last.points;
+  const gapText =
+    gap > 0
+      ? `−${gap} pts vs líder`
+      : gap < 0
+        ? `+${Math.abs(gap)} pts sobre el líder`
+        : 'igualado con el líder';
+
   const ariaLabel =
     `Evolución de puntos: ${bezzecchiName} frente a ${leaderName} a lo largo de ` +
     `${evolution.length} ${evolution.length === 1 ? 'ronda' : 'rondas'}. Última ronda ` +
-    `(${last.name}): ${last.points} puntos de ${bezzecchiName} y ${last.leaderPoints} de ${leaderName}.`;
+    `(${last.name}): ${last.points} puntos de ${bezzecchiName} y ${last.leaderPoints} de ${leaderName}` +
+    `${gap !== 0 ? `, ${gapText}` : ''}.`;
 
   return (
     <div
       className={`rounded-2xl border border-line/60 bg-carbon/40 ${compact ? 'p-2' : 'p-4 md:p-5'}`}
     >
+      {/* Riel de lectura: leyenda + últimas cifras (telemetría) */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2">
+        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <li className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ background: ACCENT }}
+            />
+            <span className="font-cond text-[11px] tracking-[0.15em] text-mist uppercase">
+              {bezzecchiName}
+            </span>
+            <span className="num font-display text-sm text-accent">{last.points}</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="h-0.5 w-4 shrink-0 rounded-full"
+              style={{ background: MIST }}
+            />
+            <span className="font-cond text-[11px] tracking-[0.15em] text-ash uppercase">
+              {leaderName}
+            </span>
+            <span className="num font-display text-sm text-mist">{last.leaderPoints}</span>
+          </li>
+        </ul>
+
+        {compact ? null : (
+          <p className="font-cond num text-[11px] tracking-[0.16em] text-ash uppercase">
+            Ronda <span className="text-mist">{last.round}</span> ·{' '}
+            <span className={gap > 0 ? 'text-accent' : 'text-mist'}>{gapText}</span>
+          </p>
+        )}
+      </div>
+
       <div role="img" aria-label={ariaLabel} style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={evolution} margin={{ top: 10, right: 12, bottom: 0, left: 0 }}>
@@ -119,11 +190,18 @@ export function StatsCharts({
               dataKey="shortName"
               tickLine={false}
               axisLine={false}
-              tick={{ fill: ASH, fontSize: 11 }}
+              tick={XAxisTick}
               interval="preserveStartEnd"
               minTickGap={14}
             />
-            <YAxis hide />
+            <YAxis
+              width={44}
+              tickLine={false}
+              axisLine={false}
+              tick={YAxisTick}
+              tickMargin={6}
+              allowDecimals={false}
+            />
 
             <Tooltip
               content={ChartTooltip}
@@ -153,22 +231,13 @@ export function StatsCharts({
               isAnimationActive={!reduced}
               animationDuration={900}
             />
-
-            {compact ? null : (
-              <Legend
-                height={30}
-                iconType="circle"
-                iconSize={8}
-                formatter={(value) => (
-                  <span className="font-cond text-[11px] tracking-[0.15em] text-ash uppercase">
-                    {value}
-                  </span>
-                )}
-              />
-            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      <p className="font-cond num px-1 pt-1 text-[10px] tracking-[0.18em] text-ash uppercase">
+        Puntos por ronda · eje Y en pts
+      </p>
     </div>
   );
 }

@@ -19,10 +19,14 @@
 | `--color-mist` | `#f6f6f8` | texto principal |
 | `--color-ash` | `#9a9aa4` | texto secundario |
 | `--color-line` | `#26262e` | bordes/líneas |
+| `--color-signal-red` | `#ff3b21` | luz roja del semáforo (aprobado R1a) |
+| `--color-signal-amber` | `#ffb02e` | luz ámbar del semáforo (aprobado R1a) |
+| `--color-signal-green` | `#2ee06a` | luz verde del semáforo (aprobado R1a) |
 
 Uso Tailwind: `bg-ink`, `bg-carbon-2`, `text-mist`, `text-ash`, `text-accent`,
 `border-line`, `bg-accent/10`, `from-ink via-ink/70`… **No crear colores nuevos
-sin aprobarlo en CONTRACTS.**
+sin aprobarlo en CONTRACTS.** Los tres `signal-*` son exclusivos del semáforo
+(Preloader) y su adopción en `extras.css` la hace `uidesign`.
 
 ### 1.2 Tipografía
 - `--font-display` → **Orbitron** (`.font-display`): títulos, cifras grandes.
@@ -87,7 +91,9 @@ con rAF-throttle (Lenis actualiza `window.scrollY` nativo).
   intensity?: number; children: ReactNode }`. Consumidor: `CareerStats` (livedata).
   Cambio de props → solicitud.
 - **`StatsCharts`** (DUEÑO: livedata): props `{ evolution: Point[];
-  bezzecchiName?: string; leaderName?: string }`.
+  bezzecchiName?: string; leaderName?: string; compact?: boolean }`
+  (`compact` opcional y retrocompatible: oculta el riel de lectura y reduce
+  altura — aprobado por el Director en R1a).
 - **`SectionHeading`** (DUEÑO: uidesign): `{ eyebrow; title; subtitle?; align? }`;
   **`Reveal`**: `{ className?; children }` wrapper de entrada.
 - **Nuevos componentes:** registrarlos aquí con sus props al crearlos.

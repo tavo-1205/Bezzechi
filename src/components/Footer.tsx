@@ -31,10 +31,10 @@ export default function Footer(): ReactElement {
   }, []);
 
   return (
-    <footer className="relative border-t border-line bg-carbon">
+    <footer className="relative x-park-ferme border-t border-accent/40 bg-carbon">
       <div className="container-x py-14">
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
+          <div className="x-hud-line x-hud-line--drawn">
             <p className="font-display text-2xl text-mist md:text-3xl">
               <span className="accent-gradient">#72</span> MARCO BEZZECCHI
             </p>

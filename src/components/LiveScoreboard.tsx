@@ -17,7 +17,7 @@ import {
   getBezzecchi,
   useLiveData,
 } from '../data/api';
-import type { RiderStanding, SeasonData, StandingsData } from '../data/api';
+import type { DataSource, RiderStanding, SeasonData, StandingsData } from '../data/api';
 import { TiltCard } from './TiltCard';
 
 /* ------------------------------- helpers --------------------------------- */
@@ -36,6 +36,31 @@ function flagGlyph(iso: string): string {
 
 const BADGE_CLS =
   'num inline-flex shrink-0 items-center rounded-full bg-accent px-2.5 py-0.5 font-cond text-[11px] font-bold tracking-[0.08em] uppercase text-ink';
+
+/**
+ * Chip de procedencia de los datos (pit-board): cada fuente se distingue de
+ * un vistazo por color Y por texto, nunca solo por el color (a11y AA).
+ */
+const SOURCE_META: Record<DataSource, { text: string; title: string; chip: string; dot: string }> = {
+  live: {
+    text: 'En directo',
+    title: 'Datos servidos por la API en esta misma sesión',
+    chip: 'border-accent/50 bg-accent/10 text-accent',
+    dot: 'bg-accent',
+  },
+  cache: {
+    text: 'Caché local',
+    title: 'Sin respuesta de la API: se muestran los últimos datos guardados en este navegador',
+    chip: 'border-line bg-carbon-2 text-mist',
+    dot: 'bg-ash',
+  },
+  mock: {
+    text: 'Snapshot offline',
+    title: 'Sin red ni caché: se muestra la copia de seguridad embebida en la web',
+    chip: 'border-accent-300/50 bg-accent-300/10 text-accent-300',
+    dot: 'bg-accent-300',
+  },
+};
 
 /* ------------------------------- odómetro -------------------------------- */
 
@@ -89,13 +114,30 @@ function ScoreboardSkeleton(): ReactElement {
     <div className="mt-8" role="status" aria-live="polite">
       <span className="sr-only">Cargando el marcador del Mundial…</span>
 
-      <div className="glass glow-border rounded-2xl p-6 md:p-8">
-        <div className="skeleton h-4 w-44" aria-hidden="true" />
-        <div className="mt-6 flex flex-wrap items-end justify-between gap-6" aria-hidden="true">
-          <div className="skeleton h-16 w-32" />
-          <div className="skeleton h-16 w-48" />
+      {/* Pit-board en carga: etiqueta HUD + bloques .skeleton con la misma forma final */}
+      <p className="font-cond text-xs tracking-[0.3em] text-ash uppercase" aria-hidden="true">
+        <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" />
+        Sincronizando telemetría…
+      </p>
+
+      <div
+        className="mt-4 overflow-hidden rounded-2xl border border-line/70 bg-carbon/60"
+        aria-hidden="true"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/70 bg-carbon-2/60 px-5 py-3 md:px-7">
+          <div className="skeleton h-3.5 w-52" />
+          <div className="skeleton h-3.5 w-24" />
         </div>
-        <div className="skeleton mt-6 h-4 w-64" aria-hidden="true" />
+        <div className="grid gap-6 px-5 py-6 sm:grid-cols-2 sm:items-end md:px-7">
+          <div>
+            <div className="skeleton h-3 w-24" />
+            <div className="skeleton mt-3 h-14 w-28" />
+          </div>
+          <div className="sm:text-right">
+            <div className="skeleton ml-auto h-3 w-20" />
+            <div className="skeleton ml-auto mt-3 h-14 w-44" />
+          </div>
+        </div>
       </div>
 
       <div
@@ -122,20 +164,25 @@ function ErrorPanel({
   onRetry: () => void;
 }): ReactElement {
   return (
-    <div className="glass glow-border mt-8 rounded-2xl p-8 text-center" role="alert">
-      <p className="font-cond text-xs tracking-[0.3em] text-accent uppercase">
-        Marcador no disponible
+    <div
+      className="mt-8 rounded-2xl border border-accent/60 bg-carbon/80 p-8 text-center"
+      role="alert"
+      style={{ boxShadow: '0 40px 90px -60px rgba(255, 77, 0, 0.9)' }}
+    >
+      <p className="font-cond inline-flex items-center gap-2 text-xs tracking-[0.3em] text-accent uppercase">
+        <span aria-hidden="true" className="inline-block h-2 w-2 rotate-45 bg-accent" />
+        Sin señal · marcador caído
       </p>
       <p className="mt-3 text-sm text-mist">{title}</p>
       {detail !== null && detail !== '' ? (
-        <p className="mt-1 break-words text-xs text-ash">{detail}</p>
+        <p className="mt-1 break-words font-cond text-xs tracking-[0.06em] text-ash">{detail}</p>
       ) : null}
       <button
         type="button"
         onClick={onRetry}
         className="font-cond mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase text-ink transition-colors hover:bg-accent-300"
       >
-        Reintentar
+        Reintentar conexión
       </button>
     </div>
   );
@@ -180,12 +227,14 @@ function KpiCard({ kpi }: { kpi: Kpi }): ReactElement {
 /* --------------------------- mini-clasificación --------------------------- */
 
 function StandingsPanel({ riders }: { riders: RiderStanding[] }): ReactElement {
+  const reduced = useReducedMotion() === true;
+
   return (
     <section
       className="glass glow-border rounded-2xl p-5 md:p-6"
       aria-labelledby="marcador-top5-title"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line/70 pb-3">
         <h3
           id="marcador-top5-title"
           className="font-cond text-sm font-semibold tracking-[0.25em] text-mist uppercase"
@@ -197,17 +246,51 @@ function StandingsPanel({ riders }: { riders: RiderStanding[] }): ReactElement {
         </span>
       </div>
 
-      <ol className="mt-4 divide-y divide-line/70">
+      <ol className="mt-2 divide-y divide-line/70">
         {riders.map((rider) => {
           const isBezzecchi = rider.number === BEZZECCHI_NUMBER;
+          const change = rider.positionChange;
+
+          const changeChip =
+            change === 0 ? null : (
+              <span
+                aria-hidden="true"
+                className={`font-cond num text-[10px] leading-none tracking-[0.08em] ${
+                  change > 0 ? 'text-accent-300' : 'text-ash'
+                }`}
+              >
+                {change > 0 ? '▲' : '▼'}
+                {Math.abs(change)}
+              </span>
+            );
+          const changeSr =
+            change === 0
+              ? null
+              : ` ${change > 0 ? 'Sube' : 'Baja'} ${Math.abs(change)} ${
+                  Math.abs(change) === 1 ? 'posición' : 'posiciones'
+                }.`;
+
           return (
-            <li
+            <motion.li
               key={rider.number}
+              /* Reordenación suave de la tabla (pit-board); sin movimiento
+                 reducido la fila salta directamente a su nueva posición. */
+              layout={!reduced}
+              initial={false}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              aria-current={isBezzecchi ? 'true' : undefined}
               className={`grid grid-cols-[2.75rem_1fr_auto] items-center gap-3 rounded-lg border-l-2 px-3 py-2.5 ${
                 isBezzecchi ? 'border-accent bg-accent/10' : 'border-transparent'
               }`}
             >
-              <span className="font-display num text-sm text-ash">P{rider.position}</span>
+              <span className="flex flex-col items-start gap-1">
+                <span
+                  className={`font-display num text-sm ${isBezzecchi ? 'text-accent' : 'text-ash'}`}
+                >
+                  P{rider.position}
+                </span>
+                {changeChip}
+              </span>
               <span className="min-w-0">
                 <span className="flex items-center gap-2">
                   <span aria-hidden="true" className="text-sm leading-none">
@@ -220,7 +303,12 @@ function StandingsPanel({ riders }: { riders: RiderStanding[] }): ReactElement {
                   >
                     {rider.name}
                   </span>
-                  <span className="sr-only">{rider.country}</span>
+                  <span className="sr-only">{rider.country}{changeSr}</span>
+                  {isBezzecchi ? (
+                    <span className="font-cond shrink-0 rounded-full border border-accent/50 px-1.5 py-px text-[10px] tracking-[0.14em] text-accent uppercase">
+                      #72
+                    </span>
+                  ) : null}
                 </span>
                 <span className="font-cond hidden truncate text-[11px] tracking-[0.12em] text-ash uppercase sm:block">
                   {rider.team}
@@ -232,7 +320,7 @@ function StandingsPanel({ riders }: { riders: RiderStanding[] }): ReactElement {
                   pts
                 </span>
               </span>
-            </li>
+            </motion.li>
           );
         })}
       </ol>
@@ -370,46 +458,61 @@ function ReadyBoard({
     ? topRiders
     : [...topRiders, bezzecchi];
 
+  const finishedRounds = season.rounds.filter((round) => round.status === 'finished').length;
+  const totalRounds = season.rounds.length;
+
   return (
     <div className="mt-8 space-y-6">
-      {/* Posición + puntos con odómetro */}
-      <TiltCard className="p-6 md:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="font-cond text-sm font-semibold tracking-[0.22em] text-ash uppercase">
-            <span className="text-mist">Marco Bezzecchi</span> · #{BEZZECCHI_NUMBER} ·{' '}
+      {/* Posición + puntos con odómetro (tabla principal estilo pit-board) */}
+      <TiltCard className="p-0">
+        {/* Riel superior del tablero de boxes */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line/70 bg-carbon-2/60 px-5 py-3 md:px-7">
+          <p className="font-cond flex items-center gap-2.5 text-sm font-semibold tracking-[0.2em] text-ash uppercase">
+            <span className="num rounded bg-accent px-1.5 py-0.5 text-[11px] leading-tight font-bold tracking-normal text-ink">
+              #{BEZZECCHI_NUMBER}
+            </span>
+            <span className="text-mist">Marco Bezzecchi</span>
+            <span aria-hidden="true" className="text-line">
+              /
+            </span>
             {bezzecchi.team}
           </p>
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-3">
+            <span className="font-cond num text-[11px] tracking-[0.18em] text-ash uppercase">
+              R{finishedRounds}/{totalRounds}
+            </span>
             {positionChip}
             {positionSr !== null ? <span className="sr-only">{positionSr}</span> : null}
           </span>
         </div>
 
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 sm:items-end">
-          <div>
-            <p className="font-cond text-xs tracking-[0.3em] text-ash uppercase">Posición</p>
-            <p className="mt-2 flex items-center font-display text-5xl leading-none md:text-7xl">
-              <span aria-hidden="true" className="mr-1 text-accent">
-                P
-              </span>
-              <Odometer value={bezzecchi.position} className="text-mist" />
-              <span className="sr-only">Posición actual: {bezzecchi.position}º</span>
-            </p>
-          </div>
-
-          <div className="relative sm:text-right">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-cond text-xs tracking-[0.3em] text-ash uppercase">Puntos</p>
-              {deltaBadge}
+        <div className="px-5 py-6 md:px-7 md:py-7">
+          <div className="grid gap-6 sm:grid-cols-2 sm:items-end">
+            <div>
+              <p className="font-cond text-xs tracking-[0.3em] text-ash uppercase">Posición</p>
+              <p className="mt-2 flex items-center font-display text-5xl leading-none md:text-7xl">
+                <span aria-hidden="true" className="mr-1 text-accent">
+                  P
+                </span>
+                <Odometer value={bezzecchi.position} className="text-mist" />
+                <span className="sr-only">Posición actual: {bezzecchi.position}º</span>
+              </p>
             </div>
-            <p className="relative mt-2 flex items-center font-display text-5xl leading-none md:text-7xl sm:justify-end">
-              {flash}
-              <Odometer value={points} className="text-mist" />
-              <span className="font-cond ml-2 text-base tracking-[0.2em] text-ash uppercase">
-                pts
-              </span>
-              <span className="sr-only">{points} puntos</span>
-            </p>
+
+            <div className="relative sm:text-right">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-cond text-xs tracking-[0.3em] text-ash uppercase">Puntos</p>
+                {deltaBadge}
+              </div>
+              <p className="relative mt-2 flex items-center font-display text-5xl leading-none md:text-7xl sm:justify-end">
+                {flash}
+                <Odometer value={points} className="text-mist" />
+                <span className="font-cond ml-2 text-base tracking-[0.2em] text-ash uppercase">
+                  pts
+                </span>
+                <span className="sr-only">{points} puntos</span>
+              </p>
+            </div>
           </div>
         </div>
       </TiltCard>
@@ -455,6 +558,8 @@ export default function LiveScoreboard(): ReactElement {
 
   const isLive = raceWeekend.active;
   const stale = source === 'cache' || source === 'mock';
+  const sourceMeta = source !== null ? SOURCE_META[source] : null;
+  const isSnapshot = source === 'mock';
 
   return (
     <section id="marcador" className="section scroll-mt-24" aria-labelledby="marcador-title">
@@ -473,37 +578,89 @@ export default function LiveScoreboard(): ReactElement {
               </h2>
             </div>
 
+            {/* Riel de estado tipo cabina: sesión · procedencia · hora */}
             <div className="flex flex-col items-start gap-2 sm:items-end">
-              {isLive ? (
-                <span className="font-cond inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-                  <span className="live-dot" aria-hidden="true" />
-                  {raceWeekend.name ? `En vivo · ${raceWeekend.name}` : 'En vivo'}
+              <div className="flex flex-wrap items-center gap-2">
+                {isLive ? (
+                  <span className="font-cond inline-flex items-center gap-2 rounded-full border border-accent/50 bg-accent/10 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-accent uppercase">
+                    <span className="live-dot" aria-hidden="true" />
+                    {raceWeekend.name ? `En vivo · ${raceWeekend.name}` : 'En vivo'}
+                  </span>
+                ) : (
+                  <span className="font-cond inline-flex items-center gap-2 rounded-full border border-line bg-carbon-2/60 px-3 py-1 text-xs tracking-[0.2em] text-ash uppercase">
+                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-ash" />
+                    Última carrera disputada
+                  </span>
+                )}
+
+                {status === 'loading' && standings !== null ? (
+                  <span
+                    role="status"
+                    className="font-cond inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-[11px] tracking-[0.2em] text-mist uppercase"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="h-2 w-2 animate-spin rounded-full border border-ash border-t-accent"
+                    />
+                    Sincronizando
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {sourceMeta !== null ? (
+                  <span
+                    title={sourceMeta.title}
+                    className={`font-cond inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] tracking-[0.18em] uppercase ${sourceMeta.chip}`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`h-1.5 w-1.5 rounded-full ${sourceMeta.dot}`}
+                    />
+                    {sourceMeta.text}
+                  </span>
+                ) : null}
+
+                <span
+                  aria-live="polite"
+                  className="font-cond text-xs tracking-[0.15em] text-ash uppercase"
+                >
+                  Actualizado{' '}
+                  <span className="num text-mist">{formatLastUpdate(lastUpdated)}</span>
                 </span>
-              ) : (
-                <span className="font-cond inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs tracking-[0.2em] text-ash uppercase">
-                  Última carrera disputada
-                </span>
-              )}
-              <span className="font-cond num text-xs tracking-[0.15em] text-ash uppercase">
-                Actualizado {formatLastUpdate(lastUpdated)}
-              </span>
+              </div>
             </div>
           </header>
 
           {stale ? (
             <p
-              className="mt-5 flex items-start gap-2 rounded-lg border border-line/70 bg-carbon-2/70 px-3.5 py-2.5 text-xs text-ash"
+              className={`mt-5 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-xs ${
+                isSnapshot
+                  ? 'border-accent-300/60 bg-accent-300/10'
+                  : 'border-dashed border-ash/50 bg-carbon-2/70'
+              }`}
               role="status"
             >
               <span
                 aria-hidden="true"
-                className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                className={`mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                  isSnapshot ? 'bg-accent-300' : 'bg-ash'
+                }`}
               />
-              <span>
+              <span className="min-w-0">
                 <span className="font-cond tracking-[0.18em] text-mist uppercase">
-                  {source === 'cache' ? 'Datos en caché' : 'Modo sin conexión · snapshot local'}
+                  {isSnapshot
+                    ? 'Modo sin conexión · snapshot local'
+                    : 'Datos en caché · sin respuesta de la API'}
                 </span>
-                {error ? <span className="block break-words text-ash">{error}</span> : null}
+                {sourceMeta !== null ? (
+                  <span className="block break-words text-ash">{sourceMeta.title}</span>
+                ) : null}
+                {error ? (
+                  <span className="mt-0.5 block break-words font-cond text-[11px] tracking-[0.06em] text-ash">
+                    Último fallo: {error}
+                  </span>
+                ) : null}
               </span>
             </p>
           ) : null}

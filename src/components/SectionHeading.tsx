@@ -18,15 +18,21 @@ export function SectionHeading({
   align?: 'left' | 'center';
 }): ReactElement {
   const center = align === 'center';
+  const reduced = useReducedMotion() === true;
 
   return (
-    <div className={center ? 'text-center' : undefined}>
+    <motion.div
+      className={center ? 'text-center' : undefined}
+      initial={reduced ? false : { opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduced ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+    >
       {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
       <h2 className={`mt-3 text-3xl text-mist md:text-5xl${center ? ' mx-auto' : ''}`}>{title}</h2>
       {subtitle ? (
         <p className={`mt-4 max-w-2xl text-base text-ash${center ? ' mx-auto' : ''}`}>{subtitle}</p>
       ) : null}
-    </div>
+    </motion.div>
   );
 }
 
