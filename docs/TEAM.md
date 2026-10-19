@@ -432,3 +432,40 @@ Limitaciones registradas: no hay herramienta de emulación de dispositivo/ancho 
   con una edición en paralelo de hero3d en `three/HeroScene.tsx`, ajena; verde
   al reintentar según la regla 2. Se mantiene el aviso preexistente de chunk
   `three` >900 kB, QA-01 aceptada).
+
+### [R5 · Director] Cierre: verificación del build de producción y revisión visual
+
+- `npm run build` en verde (typecheck + 1580+ módulos) y `npm run preview` servido en
+  `http://localhost:4173/` → **verificado en el build de producción**:
+  - Preloader: `documentElement.dataset.preloader === "done"` y el overlay **fuera del
+    DOM** (sin trampa de foco). `h1` = "MARCO BEZZECCHI". Canvas 800×656 CSS /
+  1 000×820 de buffer, renderizando.
+  - **0 errores / 0 rechazos** de JS recorriendo las 6 secciones; `scrollWidth −
+    innerWidth = −15 px` (ancho del scrollbar) → **0 desbordamiento**; 6 secciones con
+    altura > 0 (656 / 1406 / 3693 / 1515 / 3694 / 968 px); cuenta atrás viva
+    (`06 DÍAS 05 HORAS 57 MIN 08 SEG`); scroll en reposo restaurado
+    (`html: visible`, `body: auto`, `scrollY = 0`).
+  - Único aviso de consola del build de producción: `THREE.Clock: This module has been
+    deprecated…`. **No es nuestro**: `grep` en `src/` no encuentra ningún `THREE.Clock`
+    (viene de las tripas de three/R3F). Se documenta, no se parchea.
+  - **Lightbox** (producción): `role="dialog"` + `aria-modal="true"`, el foco entra al
+    abrir (`Cerrar vista ampliada`), `body { overflow: hidden }` mientras está abierto,
+    `Esc` cierra y restaura (`body: auto`, sin `lenis-stopped`) y el scroll vuelve a
+    responder (300 px programados → 300). **QA-06 confirmada en producción.**
+  - **Lighthouse**: accesibilidad **1.00**, buenas prácticas **1.00**, SEO **1.00**,
+    `failures: []` (la herramienta no emite score de rendimiento).
+- **Revisión visual** (`nemotron-3.5-super-vl`, visión): 1.ª pasada sobre 7 capturas →
+  hallazgos (hero solapado a 800 px, pill sin nombre de carrera, y varios artefactos de
+  recorte vertical del viewport). Tras las correcciones, 2.ª pasada sobre hero y
+  marcador finales: *"ya no se pisan… la moto se ve entera y reconocible… el marcador
+  se lee perfectamente… sin defectos nuevos… aprobadas"*. Capturas en
+  `%LOCALAPPDATA%\Temp\opencode\capturas\`.
+- **Riesgo residual (declarado)**: el layout **móvil** (< 768 px) y los anchos
+  intermedios se verifican por código (media queries, `clamp` y `heroLayout`) y por
+  proyección geométrica de la cámara —**no por captura**, porque el entorno no tiene
+  emulación de viewport. El rendimiento con animaciones activas tampoco se puede medir
+  aquí (el tab de pruebas viene con `prefers-reduced-motion`).
+- **Cierre**: **0 incidencias críticas y 0 altas abiertas**. De las 10 de QA: 5
+  corregidas (QA-02/03/05/08/09), 3 verificadas sin incidencia (QA-06/07/10), 1
+  aceptada y documentada (QA-01) y 1 cerrada como no-incidencia con justificación WCAG
+  (QA-04).
