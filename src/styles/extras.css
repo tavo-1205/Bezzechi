@@ -1,0 +1,13 @@
+/* ===========================================================================
+   EXTRAS — rediseño "Recorrido por el circuito"
+   DUEÑO: agente `uidesign` · ÚNICO archivo CSS que un especialista puede tocar.
+   Reglas (docs/CONTRACTS.md §3):
+   - Prefijo obligatorio `x-` en toda clase nueva (evita colisiones).
+   - No se modifican tokens (@theme) ni clases base de index.css.
+   - Preferir `@layer components { … }` salvo que deba ganar a utilities.
+   - Anular animaciones en @media (prefers-reduced-motion: reduce).
+   =========================================================================== */
+
+@layer components {
+  /* Aquí van las clases del rediseño: .x-preloader, .x-spotlight, .x-hud… */
+}

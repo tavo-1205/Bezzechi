@@ -1,0 +1,4 @@
+# Marco Bezzecchi #72 — sitio de fans no oficial.
+# Añade aquí el sitemap cuando tengas dominio propio (Sitemap: https://TU-DOMINIO/sitemap.xml)
+User-agent: *
+Allow: /

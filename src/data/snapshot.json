@@ -1,0 +1,1090 @@
+{
+  "generatedAt": "2026-10-19T04:03:39.412Z",
+  "note": "Snapshot generado con `npm run snapshot` desde la API pública de MotoGP. Sustitúyelo cuando cambie la fuente de datos.",
+  "standings": {
+    "source": "mock",
+    "fetchedAt": "2026-10-19T04:03:37.532Z",
+    "season": 2026,
+    "raceWeekend": {
+      "active": false,
+      "name": null,
+      "countryIso": null,
+      "dateStart": null,
+      "dateEnd": null
+    },
+    "riders": [
+      {
+        "position": 1,
+        "name": "Jorge Martin",
+        "number": 89,
+        "country": "Spain",
+        "countryIso": "ES",
+        "team": "Aprilia Racing",
+        "constructor": "Aprilia",
+        "points": 355,
+        "raceWins": 1,
+        "podiums": 9,
+        "sprintWins": 4,
+        "sprintPodiums": 8,
+        "positionChange": 1
+      },
+      {
+        "position": 2,
+        "name": "Marc Marquez",
+        "number": 93,
+        "country": "Spain",
+        "countryIso": "ES",
+        "team": "Ducati Lenovo Team",
+        "constructor": "Ducati",
+        "points": 353,
+        "raceWins": 6,
+        "podiums": 6,
+        "sprintWins": 8,
+        "sprintPodiums": 11,
+        "positionChange": -1
+      },
+      {
+        "position": 3,
+        "name": "Marco Bezzecchi",
+        "number": 72,
+        "country": "Italy",
+        "countryIso": "IT",
+        "team": "Aprilia Racing",
+        "constructor": "Aprilia",
+        "points": 309,
+        "raceWins": 5,
+        "podiums": 11,
+        "sprintWins": 0,
+        "sprintPodiums": 6,
+        "positionChange": 0
+      },
+      {
+        "position": 4,
+        "name": "Ai Ogura",
+        "number": 79,
+        "country": "Japan",
+        "countryIso": "JP",
+        "team": "SuperFile Trackhouse MotoGP Team",
+        "constructor": "Aprilia",
+        "points": 259,
+        "raceWins": 1,
+        "podiums": 4,
+        "sprintWins": 0,
+        "sprintPodiums": 4,
+        "positionChange": 1
+      },
+      {
+        "position": 5,
+        "name": "Pedro Acosta",
+        "number": 37,
+        "country": "Spain",
+        "countryIso": "ES",
+        "team": "Red Bull KTM Factory Racing",
+        "constructor": "KTM",
+        "points": 258,
+        "raceWins": 1,
+        "podiums": 6,
+        "sprintWins": 1,
+        "sprintPodiums": 3,
+        "positionChange": -1
+      },
+      {
+        "position": 6,
+        "name": "Fabio Di Giannantonio",
+        "number": 49,
+        "country": "Italy",
+        "countryIso": "IT",
+        "team": "Pertamina Enduro VR46 Racing Team",
+        "constructor": "Ducati",
+        "points": 245,
+        "raceWins": 1,
+        "podiums": 3,
+        "sprintWins": 0,
+        "sprintPodiums": 6,
+        "positionChange": 0
+      },
+      {
+        "position": 7,
+        "name": "Raul Fernandez",
+        "number": 25,
+        "country": "Spain",
+        "countryIso": "ES",
+        "team": "SuperFile Trackhouse MotoGP Team",
+        "constructor": "Aprilia",
+        "points": 236,
+        "raceWins": 1,
+        "podiums": 5,
+        "sprintWins": 2,
+        "sprintPodiums": 3,
+        "positionChange": 0
+      },
+      {
+        "position": 8,
+        "name": "Alex Marquez",
+        "number": 73,
+        "country": "Spain",
+        "countryIso": "ES",
+        "team": "BK8 Gresini Racing MotoGP",
+        "constructor": "Ducati",
+        "points": 172,
+        "raceWins": 1,
+        "podiums": 2,
+        "sprintWins": 1,
+        "sprintPodiums": 3,
+        "positionChange": 1
+      },
+      {
+        "position": 9,
+        "name": "Francesco Bagnaia",
+        "number": 63,
+        "country": "Italy",
+        "countryIso": "IT",
+        "team": "Ducati Lenovo Team",
+        "constructor": "Ducati",
+        "points": 166,
+        "raceWins": 0,
+        "podiums": 4,
+        "sprintWins": 1,
+        "sprintPodiums": 4,
+        "positionChange": -1
+      },
+      {
+        "position": 10,
+        "name": "Fermin Aldeguer",
+        "number": 54,
+        "country": "Spain",
+        "countryIso": "ES",
+        "team": "BK8 Gresini Racing MotoGP",
+        "constructor": "Ducati",
+        "points": 125,
+        "raceWins": 0,
+        "podiums": 1,
+        "sprintWins": 0,
+        "sprintPodiums": 0,
+        "positionChange": 0
+      },
+      {
+        "position": 11,
+        "name": "Enea Bastianini",
+        "number": 23,
+        "country": "Italy",
+        "countryIso": "IT",
+        "team": "Red Bull KTM Tech3",
+        "constructor": "KTM",
+        "points": 122,
+        "raceWins": 0,
+        "podiums": 0,
+        "sprintWins": 0,
+        "sprintPodiums": 1,
+        "positionChange": 0
+      },
+      {
+        "position": 12,
+        "name": "Luca Marini",
+        "number": 10,
+        "country": "Italy",
+        "countryIso": "IT",
+        "team": "Honda HRC Castrol",
+        "constructor": "Honda",
+        "points": 108,
+        "raceWins": 0,
+        "podiums": 0,
+        "sprintWins": 0,
+        "sprintPodiums": 0,
+        "positionChange": 0
+      }
+    ]
+  },
+  "season": {
+    "source": "live",
+    "fetchedAt": "2026-10-19T04:03:39.412Z",
+    "season": 2026,
+    "raceWeekend": {
+      "active": false,
+      "name": null,
+      "countryIso": null,
+      "dateStart": null,
+      "dateEnd": null
+    },
+    "rounds": [
+      {
+        "round": 1,
+        "name": "PT Grand Prix of Thailand",
+        "shortName": "THA",
+        "circuit": "Chang International Circuit",
+        "country": "Thailand",
+        "countryIso": "TH",
+        "dateStart": "2026-02-27",
+        "dateEnd": "2026-03-01",
+        "raceDate": "2026-03-01T15:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 1,
+          "racePos": 1,
+          "racePoints": 25,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": null,
+          "sprintPoints": 0,
+          "sprintStatus": "OUTSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Marco Bezzecchi",
+          "poleNumber": 72
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 25,
+            "sprintPoints": 0,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 13,
+            "sprintPoints": 5,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 2,
+        "name": "Estrella Galicia 0,0 Grand Prix of Brazil",
+        "shortName": "BRA",
+        "circuit": "Autódromo Internacional de Goiânia - Ayrton Senna",
+        "country": "Brazil",
+        "countryIso": "BR",
+        "dateStart": "2026-03-20",
+        "dateEnd": "2026-03-22",
+        "raceDate": "2026-03-22T15:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 2,
+          "racePos": 1,
+          "racePoints": 25,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 4,
+          "sprintPoints": 6,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Marco Bezzecchi",
+          "poleNumber": 49
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 25,
+            "sprintPoints": 6,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 20,
+            "sprintPoints": 7,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 3,
+        "name": "Red Bull Grand Prix of The United States",
+        "shortName": "USA",
+        "circuit": "Circuit Of The Americas",
+        "country": "United States of America",
+        "countryIso": "US",
+        "dateStart": "2026-03-27",
+        "dateEnd": "2026-03-29",
+        "raceDate": "2026-03-29T15:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 2,
+          "racePos": 1,
+          "racePoints": 25,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": null,
+          "sprintPoints": 0,
+          "sprintStatus": "OUTSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Ai Ogura",
+          "poleNumber": 49
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 25,
+            "sprintPoints": 0,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 20,
+            "sprintPoints": 12,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 4,
+        "name": "Estrella Galicia 0,0 Grand Prix of Spain",
+        "shortName": "SPA",
+        "circuit": "Circuito de Jerez - Ángel Nieto",
+        "country": "Spain",
+        "countryIso": "ES",
+        "dateStart": "2026-04-24",
+        "dateEnd": "2026-04-26",
+        "raceDate": "2026-04-26T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 4,
+          "racePos": 2,
+          "racePoints": 20,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": null,
+          "sprintPoints": 0,
+          "sprintStatus": "OUTSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Alex Marquez",
+          "poleNumber": 93
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 20,
+            "sprintPoints": 0,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 13,
+            "sprintPoints": 0,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 5,
+        "name": "Michelin Grand Prix of France",
+        "shortName": "FRA",
+        "circuit": "Le Mans",
+        "country": "France",
+        "countryIso": "FR",
+        "dateStart": "2026-05-08",
+        "dateEnd": "2026-05-10",
+        "raceDate": "2026-05-10T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 3,
+          "racePos": 2,
+          "racePoints": 20,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 3,
+          "sprintPoints": 7,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Francesco Bagnaia",
+          "poleNumber": 63
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 20,
+            "sprintPoints": 7,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 25,
+            "sprintPoints": 12,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 6,
+        "name": "Monster Energy Grand Prix of Catalonia",
+        "shortName": "CAT",
+        "circuit": "Circuit de Barcelona-Catalunya",
+        "country": "Spain",
+        "countryIso": "ES",
+        "dateStart": "2026-05-15",
+        "dateEnd": "2026-05-17",
+        "raceDate": "2026-05-17T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 12,
+          "racePos": 12,
+          "racePoints": 0,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 9,
+          "sprintPoints": 1,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": null,
+          "poleNumber": 37
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 0,
+            "sprintPoints": 1,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 0,
+            "sprintPoints": 0,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 7,
+        "name": "BREMBO GRAND PRIX OF ITALY ",
+        "shortName": "ITA",
+        "circuit": "Autodromo Internazionale del Mugello",
+        "country": "Italy",
+        "countryIso": "IT",
+        "dateStart": "2026-05-29",
+        "dateEnd": "2026-05-31",
+        "raceDate": "2026-05-31T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 1,
+          "racePos": 1,
+          "racePoints": 25,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 4,
+          "sprintPoints": 6,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Francesco Bagnaia",
+          "poleNumber": 72
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 25,
+            "sprintPoints": 6,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 20,
+            "sprintPoints": 9,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 8,
+        "name": "GRAND PRIX OF HUNGARY ",
+        "shortName": "HUN",
+        "circuit": "Balaton Park Circuit",
+        "country": "Hungary",
+        "countryIso": "HU",
+        "dateStart": "2026-06-05",
+        "dateEnd": "2026-06-07",
+        "raceDate": "2026-06-07T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 6,
+          "racePos": null,
+          "racePoints": 0,
+          "raceStatus": "NOTFINISHFIRST",
+          "started": true,
+          "sprintPos": 3,
+          "sprintPoints": 7,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Marc Marquez",
+          "poleNumber": 93
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 0,
+            "sprintPoints": 7,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 0,
+            "sprintPoints": 4,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 9,
+        "name": "MONSTER ENERGY GRAND PRIX OF CZECHIA ",
+        "shortName": "CZE",
+        "circuit": "CREDITAS Autodrom Brno",
+        "country": "Czechia",
+        "countryIso": "CZ",
+        "dateStart": "2026-06-19",
+        "dateEnd": "2026-06-21",
+        "raceDate": "2026-06-21T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 4,
+          "racePos": null,
+          "racePoints": 0,
+          "raceStatus": null,
+          "started": false,
+          "sprintPos": null,
+          "sprintPoints": 0,
+          "sprintStatus": "OUTSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Fabio Di Giannantonio",
+          "poleNumber": 79
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 0,
+            "sprintPoints": 0,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 7,
+            "sprintPoints": 5,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 10,
+        "name": "TISSOT GRAND PRIX OF THE NETHERLANDS ",
+        "shortName": "NED",
+        "circuit": "TT Circuit Assen",
+        "country": "Netherlands",
+        "countryIso": "NL",
+        "dateStart": "2026-06-26",
+        "dateEnd": "2026-06-28",
+        "raceDate": "2026-06-28T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 3,
+          "racePos": null,
+          "racePoints": 0,
+          "raceStatus": "OUTSTND",
+          "started": true,
+          "sprintPos": 4,
+          "sprintPoints": 6,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Ai Ogura",
+          "poleNumber": 89
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 0,
+            "sprintPoints": 6,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 16,
+            "sprintPoints": 5,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 11,
+        "name": "LIQUI MOLY GRAND PRIX OF GERMANY ",
+        "shortName": "GER",
+        "circuit": "Sachsenring",
+        "country": "Germany",
+        "countryIso": "DE",
+        "dateStart": "2026-07-10",
+        "dateEnd": "2026-07-12",
+        "raceDate": "2026-07-12T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 8,
+          "racePos": null,
+          "racePoints": 0,
+          "raceStatus": null,
+          "started": false,
+          "sprintPos": null,
+          "sprintPoints": 0,
+          "sprintStatus": null,
+          "sprintStarted": false,
+          "fastestLapRider": "Marc Marquez",
+          "poleNumber": 93
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 0,
+            "sprintPoints": 0,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 11,
+            "sprintPoints": 4,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 12,
+        "name": "QATAR AIRWAYS GRAND PRIX OF GREAT BRITAIN ",
+        "shortName": "GBR",
+        "circuit": "Silverstone Circuit",
+        "country": "United Kingdom of Great Britain and Northern Ireland",
+        "countryIso": "GB",
+        "dateStart": "2026-08-07",
+        "dateEnd": "2026-08-09",
+        "raceDate": "2026-08-09T13:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 5,
+          "racePos": 3,
+          "racePoints": 16,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 3,
+          "sprintPoints": 7,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Raul Fernandez",
+          "poleNumber": 89
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 16,
+            "sprintPoints": 7,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 20,
+            "sprintPoints": 12,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 13,
+        "name": "MICHELIN® GRAND PRIX OF ARAGON ",
+        "shortName": "ARA",
+        "circuit": "MotorLand Aragón",
+        "country": "Spain",
+        "countryIso": "ES",
+        "dateStart": "2026-08-28",
+        "dateEnd": "2026-08-30",
+        "raceDate": "2026-08-30T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 1,
+          "racePos": 3,
+          "racePoints": 16,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 3,
+          "sprintPoints": 7,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Marc Marquez",
+          "poleNumber": 72
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 16,
+            "sprintPoints": 7,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 11,
+            "sprintPoints": 5,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 14,
+        "name": "RED BULL GRAND PRIX OF SAN MARINO AND THE RIMINI RIVIERA ",
+        "shortName": "RSM",
+        "circuit": "Misano World Circuit Marco Simoncelli",
+        "country": "San Marino",
+        "countryIso": "SM",
+        "dateStart": "2026-09-11",
+        "dateEnd": "2026-09-13",
+        "raceDate": "2026-09-13T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 1,
+          "racePos": null,
+          "racePoints": 0,
+          "raceStatus": "NOTFINISHFIRST",
+          "started": true,
+          "sprintPos": 2,
+          "sprintPoints": 9,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Fermin Aldeguer",
+          "poleNumber": 72
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 0,
+            "sprintPoints": 9,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 11,
+            "sprintPoints": 7,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 15,
+        "name": "QATAR AIRWAYS GRAND PRIX OF AUSTRIA ",
+        "shortName": "AUT",
+        "circuit": "Red Bull Ring - Spielberg",
+        "country": "Austria",
+        "countryIso": "AT",
+        "dateStart": "2026-09-18",
+        "dateEnd": "2026-09-20",
+        "raceDate": "2026-09-20T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 4,
+          "racePos": 3,
+          "racePoints": 16,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 3,
+          "sprintPoints": 7,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Pedro Acosta",
+          "poleNumber": 89
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 16,
+            "sprintPoints": 7,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 20,
+            "sprintPoints": 12,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 16,
+        "name": "MOTUL GRAND PRIX OF JAPAN ",
+        "shortName": "JPN",
+        "circuit": "Mobility Resort Motegi",
+        "country": "Japan",
+        "countryIso": "JP",
+        "dateStart": "2026-10-02",
+        "dateEnd": "2026-10-04",
+        "raceDate": "2026-10-04T14:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 4,
+          "racePos": 3,
+          "racePoints": 16,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": 6,
+          "sprintPoints": 4,
+          "sprintStatus": "INSTND",
+          "sprintStarted": true,
+          "fastestLapRider": "Enea Bastianini",
+          "poleNumber": 89
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 16,
+            "sprintPoints": 4,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 20,
+            "sprintPoints": 7,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 17,
+        "name": "PERTAMINA GRAND PRIX OF INDONESIA ",
+        "shortName": "INA",
+        "circuit": "Pertamina Mandalika Circuit",
+        "country": "Indonesia",
+        "countryIso": "ID",
+        "dateStart": "2026-10-09",
+        "dateEnd": "2026-10-11",
+        "raceDate": "2026-10-11T15:00:00+00:00",
+        "status": "finished",
+        "result": {
+          "grid": 2,
+          "racePos": 1,
+          "racePoints": 25,
+          "raceStatus": "INSTND",
+          "started": true,
+          "sprintPos": null,
+          "sprintPoints": 0,
+          "sprintStatus": "NOTFINISHFIRST",
+          "sprintStarted": true,
+          "fastestLapRider": "Marco Bezzecchi",
+          "poleNumber": 25
+        },
+        "points": null,
+        "perRider": {
+          "72": {
+            "racePoints": 25,
+            "sprintPoints": 0,
+            "name": "Marco Bezzecchi"
+          },
+          "89": {
+            "racePoints": 16,
+            "sprintPoints": 6,
+            "name": "Jorge Martin"
+          }
+        }
+      },
+      {
+        "round": 18,
+        "name": "RED BULL GRAND PRIX OF AUSTRALIA",
+        "shortName": "AUS",
+        "circuit": "Phillip Island",
+        "country": "Australia",
+        "countryIso": "AU",
+        "dateStart": "2026-10-23",
+        "dateEnd": "2026-10-25",
+        "raceDate": "2026-10-25T14:00:00+00:00",
+        "status": "upcoming",
+        "result": null,
+        "points": null
+      },
+      {
+        "round": 19,
+        "name": "Petronas Grand Prix of Malaysia",
+        "shortName": "MAL",
+        "circuit": "Petronas Sepang International Circuit",
+        "country": "Malaysia",
+        "countryIso": "MY",
+        "dateStart": "2026-10-30",
+        "dateEnd": "2026-11-01",
+        "raceDate": "2026-11-01T15:00:00+00:00",
+        "status": "upcoming",
+        "result": null,
+        "points": null
+      },
+      {
+        "round": 20,
+        "name": "Qatar Airways Grand Prix of Qatar",
+        "shortName": "QAT",
+        "circuit": "Lusail International Circuit",
+        "country": "Qatar",
+        "countryIso": "QA",
+        "dateStart": "2026-11-06",
+        "dateEnd": "2026-11-08",
+        "raceDate": "2026-11-06T20:00:00+00:00",
+        "status": "upcoming",
+        "result": null,
+        "points": null
+      },
+      {
+        "round": 21,
+        "name": "Repsol Grand Prix of Portugal",
+        "shortName": "POR",
+        "circuit": "Autódromo Internacional do Algarve",
+        "country": "Portugal",
+        "countryIso": "PT",
+        "dateStart": "2026-11-20",
+        "dateEnd": "2026-11-22",
+        "raceDate": "2026-11-15T13:00:00+00:00",
+        "status": "upcoming",
+        "result": null,
+        "points": null
+      },
+      {
+        "round": 22,
+        "name": "Motul Grand Prix of Valencia",
+        "shortName": "VAL",
+        "circuit": "Circuit Ricardo Tormo",
+        "country": "Spain",
+        "countryIso": "ES",
+        "dateStart": "2026-11-27",
+        "dateEnd": "2026-11-29",
+        "raceDate": "2026-11-22T14:00:00+00:00",
+        "status": "upcoming",
+        "result": null,
+        "points": null
+      }
+    ],
+    "evolution": [
+      {
+        "round": 1,
+        "shortName": "THA",
+        "name": "PT Grand Prix of Thailand",
+        "points": 25,
+        "leaderPoints": 18
+      },
+      {
+        "round": 2,
+        "shortName": "BRA",
+        "name": "Estrella Galicia 0,0 Grand Prix of Brazil",
+        "points": 56,
+        "leaderPoints": 45
+      },
+      {
+        "round": 3,
+        "shortName": "USA",
+        "name": "Red Bull Grand Prix of The United States",
+        "points": 81,
+        "leaderPoints": 77
+      },
+      {
+        "round": 4,
+        "shortName": "SPA",
+        "name": "Estrella Galicia 0,0 Grand Prix of Spain",
+        "points": 101,
+        "leaderPoints": 90
+      },
+      {
+        "round": 5,
+        "shortName": "FRA",
+        "name": "Michelin Grand Prix of France",
+        "points": 128,
+        "leaderPoints": 127
+      },
+      {
+        "round": 6,
+        "shortName": "CAT",
+        "name": "Monster Energy Grand Prix of Catalonia",
+        "points": 129,
+        "leaderPoints": 127
+      },
+      {
+        "round": 7,
+        "shortName": "ITA",
+        "name": "BREMBO GRAND PRIX OF ITALY ",
+        "points": 160,
+        "leaderPoints": 156
+      },
+      {
+        "round": 8,
+        "shortName": "HUN",
+        "name": "GRAND PRIX OF HUNGARY ",
+        "points": 167,
+        "leaderPoints": 160
+      },
+      {
+        "round": 9,
+        "shortName": "CZE",
+        "name": "MONSTER ENERGY GRAND PRIX OF CZECHIA ",
+        "points": 167,
+        "leaderPoints": 172
+      },
+      {
+        "round": 10,
+        "shortName": "NED",
+        "name": "TISSOT GRAND PRIX OF THE NETHERLANDS ",
+        "points": 173,
+        "leaderPoints": 193
+      },
+      {
+        "round": 11,
+        "shortName": "GER",
+        "name": "LIQUI MOLY GRAND PRIX OF GERMANY ",
+        "points": 173,
+        "leaderPoints": 208
+      },
+      {
+        "round": 12,
+        "shortName": "GBR",
+        "name": "QATAR AIRWAYS GRAND PRIX OF GREAT BRITAIN ",
+        "points": 196,
+        "leaderPoints": 240
+      },
+      {
+        "round": 13,
+        "shortName": "ARA",
+        "name": "MICHELIN® GRAND PRIX OF ARAGON ",
+        "points": 219,
+        "leaderPoints": 256
+      },
+      {
+        "round": 14,
+        "shortName": "RSM",
+        "name": "RED BULL GRAND PRIX OF SAN MARINO AND THE RIMINI RIVIERA ",
+        "points": 228,
+        "leaderPoints": 274
+      },
+      {
+        "round": 15,
+        "shortName": "AUT",
+        "name": "QATAR AIRWAYS GRAND PRIX OF AUSTRIA ",
+        "points": 251,
+        "leaderPoints": 306
+      },
+      {
+        "round": 16,
+        "shortName": "JPN",
+        "name": "MOTUL GRAND PRIX OF JAPAN ",
+        "points": 271,
+        "leaderPoints": 333
+      },
+      {
+        "round": 17,
+        "shortName": "INA",
+        "name": "PERTAMINA GRAND PRIX OF INDONESIA ",
+        "points": 296,
+        "leaderPoints": 355
+      }
+    ],
+    "stats": {
+      "poles": 4,
+      "fastestLaps": 3,
+      "starts": 15,
+      "sprintStarts": 16,
+      "dnfs": 3
+    },
+    "bezzecchi": {
+      "position": 3,
+      "name": "Marco Bezzecchi",
+      "number": 72,
+      "country": "Italy",
+      "countryIso": "IT",
+      "team": "Aprilia Racing",
+      "constructor": "Aprilia",
+      "points": 309,
+      "raceWins": 5,
+      "podiums": 11,
+      "sprintWins": 0,
+      "sprintPodiums": 6,
+      "positionChange": 0
+    },
+    "leader": {
+      "name": "Jorge Martin",
+      "number": 89,
+      "points": 355
+    },
+    "nextRace": {
+      "round": 18,
+      "name": "RED BULL GRAND PRIX OF AUSTRALIA",
+      "shortName": "AUS",
+      "circuit": "Phillip Island",
+      "country": "Australia",
+      "countryIso": "AU",
+      "dateStart": "2026-10-23",
+      "dateEnd": "2026-10-25",
+      "raceDate": "2026-10-25T14:00:00+00:00",
+      "status": "upcoming",
+      "result": null,
+      "points": null
+    }
+  }
+}
