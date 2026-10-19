@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { ReactElement } from 'react';
 import { GALLERY, SOCIALS } from '../data/content';
 import { scrollToSection } from '../lib/scroll';
+import MagneticButton from './MagneticButton';
 
 /* ---------------------------------------------------------------------------
  * Footer de la landing: enlaces oficiales, aviso legal, atribución de datos
@@ -41,13 +42,13 @@ export default function Footer(): ReactElement {
             <p className="font-cond mt-2 text-sm tracking-[0.3em] text-ash uppercase">Aprilia Racing · MotoGP</p>
           </div>
 
-          <button
-            type="button"
+          <MagneticButton
             onClick={() => scrollToSection('inicio')}
+            strength={0.3}
             className="font-cond glass rounded-full px-5 py-2.5 text-sm tracking-[0.2em] text-mist uppercase transition-colors hover:border-accent/60 hover:text-accent"
           >
             <span aria-hidden="true">↑ </span>Volver al inicio
-          </button>
+          </MagneticButton>
         </div>
 
         <nav aria-label="Enlaces oficiales" className="mt-10">

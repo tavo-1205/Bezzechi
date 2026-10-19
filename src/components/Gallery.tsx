@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion, type TargetAndTransition } f
 import { GALLERY, type GalleryItem } from '../data/content';
 import { startScroll, stopScroll } from '../lib/scroll';
 import { Reveal, SectionHeading } from './SectionHeading';
+import MagneticButton from './MagneticButton';
 
 /* ---------------------------------------------------------------------------
  * Galería: carrusel "coverflow" 3D con CSS transforms (framer-motion) y
@@ -307,14 +308,14 @@ export default function Gallery(): ReactElement {
 
           {/* Controles */}
           <div className="mt-6 flex items-center justify-center gap-3 sm:gap-5">
-            <button
-              type="button"
+            <MagneticButton
               onClick={prev}
               aria-label="Foto anterior"
+              strength={0.35}
               className="glass rounded-full p-3 text-mist transition-colors hover:bg-accent/10 hover:text-accent"
             >
               <ChevronIcon flipped />
-            </button>
+            </MagneticButton>
 
             <ul className="flex items-center gap-2">
               {GALLERY.map((item, i) => (
@@ -340,14 +341,14 @@ export default function Gallery(): ReactElement {
               <span className="text-mist">{index + 1}</span> / {count}
             </p>
 
-            <button
-              type="button"
+            <MagneticButton
               onClick={next}
               aria-label="Foto siguiente"
+              strength={0.35}
               className="glass rounded-full p-3 text-mist transition-colors hover:bg-accent/10 hover:text-accent"
             >
               <ChevronIcon />
-            </button>
+            </MagneticButton>
           </div>
 
           <p className="sr-only" aria-live="polite">
@@ -404,25 +405,24 @@ export default function Gallery(): ReactElement {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
+                  <MagneticButton
                     onClick={prev}
                     aria-label="Foto anterior"
+                    strength={0.35}
                     className="glass rounded-full p-2.5 text-mist transition-colors hover:bg-accent/10 hover:text-accent"
                   >
                     <ChevronIcon flipped />
-                  </button>
-                  <button
-                    type="button"
+                  </MagneticButton>
+                  <MagneticButton
                     onClick={next}
                     aria-label="Foto siguiente"
+                    strength={0.35}
                     className="glass rounded-full p-2.5 text-mist transition-colors hover:bg-accent/10 hover:text-accent"
                   >
                     <ChevronIcon />
-                  </button>
-                  <button
+                  </MagneticButton>
+                  <MagneticButton
                     ref={closeBtnRef}
-                    type="button"
                     onClick={() => setOpen(false)}
                     aria-label="Cerrar vista ampliada"
                     className="glass rounded-full p-2.5 text-mist transition-colors hover:bg-accent hover:text-ink"
@@ -438,7 +438,7 @@ export default function Gallery(): ReactElement {
                     >
                       <path d="M18 6 6 18M6 6l12 12" />
                     </svg>
-                  </button>
+                  </MagneticButton>
                 </div>
               </div>
 

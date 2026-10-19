@@ -11,6 +11,9 @@ import { formatLastUpdate, useLiveData, type Round } from '../data/api';
  *   hace fetch ni se crea ningún temporizador de red propio.
  * - Cuenta atrás en vivo hacia `nextRace` con `setInterval(1 s)` (solo texto,
  *   así funciona igual con `prefers-reduced-motion`).
+ * - Entrada de secciones coherente con el "recorrido": paneles con fade+y y
+ *   cascada de tarjetas de ronda (solo al scroll, sin tocar la cuenta atrás ni
+ *   la a11y; con `prefers-reduced-motion` sin animación).
  * - Fechas formateadas con `Intl.DateTimeFormat('es-ES')`: la API devuelve ISO
  *   con offset, así que el instante es correcto y se muestra en zona local.
  */
@@ -373,15 +376,30 @@ export default function Calendar(): ReactElement {
       const root = rootRef.current;
       if (!root) return;
 
-      const reveals = gsap.utils.toArray<HTMLElement>('[data-cal-reveal]', root);
-      reveals.forEach((element) => {
-        gsap.from(element, {
+      // Entrada coherente con el "recorrido": cada tramo (cabecera, panel de
+      // cuenta atrás, grupo de rondas) se pasa de largo y frena; dentro de los
+      // grupos, las tarjetas entran en cascada como curvas consecutivas.
+      const panels = gsap.utils.toArray<HTMLElement>('[data-cal-reveal]', root);
+      panels.forEach((panel) => {
+        gsap.from(panel, {
           opacity: 0,
           y: 40,
           duration: 0.7,
           ease: 'power3.out',
-          scrollTrigger: { trigger: element, start: 'top 92%', once: true },
+          scrollTrigger: { trigger: panel, start: 'top 92%', once: true },
         });
+
+        const cards = panel.querySelectorAll<HTMLElement>('ul > li');
+        if (cards.length > 1) {
+          gsap.from(cards, {
+            opacity: 0,
+            y: 32,
+            duration: 0.65,
+            ease: 'power3.out',
+            stagger: 0.07,
+            scrollTrigger: { trigger: panel, start: 'top 88%', once: true },
+          });
+        }
       });
     }, rootRef);
 

@@ -50,3 +50,20 @@ Registro de decisiones del Director. Las reglas de colaboración están en
   desde el último commit bueno y probar otro enfoque (prohibido `git reset --hard`
   y `git push` — además están denegados por `opencode.json`).
 - Paquetes nuevos: registrar aquí antes de instalarlos. *Ninguno por ahora.*
+
+## 2026-10-19 · Limitación del navegador integrado (verificación visual)
+
+- El tab del navegador integrado está **oculto** (`document.visibilityState:
+  "hidden"`, `hasFocus: false`): no hay rAF/render (el canvas del hero quedó en
+  300×150 sin pintar) y `browser.screenshot` falla ("needs a visible tab").
+- Consecuencia: la verificación de esta sesión se hace con DOM/geometría/estilos
+  computados (`browser.evaluate`), consola (`browser.console`) y `typecheck`/`build`;
+  la revisión **visual** final queda para el usuario (o se reintenta la captura si
+  la ventana pasa a primer plano).
+- `nemotron` pasa a revisar **código + snapshots de accesibilidad** en lugar de
+  imágenes mientras no haya capturas.
+- Estado observado en la primera carga: consola sin errores de la app (solo el
+  aviso de la librería `motion` por reduced-motion activo en el tab de pruebas);
+  `preloader:done` emitido y overlay retirado; 6 secciones en `main`;
+  `overflowPx` = 120 en el documento con `body { overflow-x: hidden }` → posible
+  incidencia media de desbordamiento para QA.

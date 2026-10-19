@@ -91,6 +91,10 @@ export default function Hero3D(): ReactElement {
           <motion.span className="block" {...clipReveal(0.15)}>
             MARCO
           </motion.span>
+          {/* Espacio real entre los dos spans: son de bloque, así que el layout no
+              cambia, pero el nombre accesible del h1 pasa de "MARCOBEZZECCHI" a
+              "Marco Bezzecchi" (y el texto copiado también). */}
+          {' '}
           <motion.span className="accent-gradient block" {...clipReveal(0.3)}>
             BEZZECCHI
           </motion.span>

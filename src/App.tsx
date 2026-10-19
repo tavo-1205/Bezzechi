@@ -4,6 +4,8 @@ import { NAV_LINKS } from './data/content';
 import { formatLastUpdate, getBezzecchi, useLiveData } from './data/api';
 import { initSmoothScroll, scrollToSection } from './lib/scroll';
 import Preloader from './components/Preloader';
+import MagneticButton from './components/MagneticButton';
+import ScrollProgress from './components/ScrollProgress';
 
 /* --------------------------------------------------------------------------
  * Shell de la landing.
@@ -135,27 +137,27 @@ function Navbar() {
         aria-label="Navegación principal"
         className="glass glow-border mx-auto flex max-w-6xl items-center gap-3 rounded-full py-2 pr-2 pl-4 md:gap-6 md:pl-6"
       >
-        <button
-          type="button"
+        <MagneticButton
           onClick={() => scrollToSection('inicio')}
+          strength={0.2}
           className="font-display shrink-0 text-sm font-black tracking-tight text-mist transition-colors hover:text-accent"
         >
           BEZZ<span className="text-accent">72</span>
-        </button>
+        </MagneticButton>
 
         <ul className="no-scrollbar flex flex-1 items-center gap-4 overflow-x-auto text-xs md:gap-5 md:text-sm">
           {NAV_LINKS.map((link) => (
             <li key={link.id} className="shrink-0">
-              <button
-                type="button"
+              <MagneticButton
                 onClick={() => scrollToSection(link.id)}
+                strength={0.15}
                 aria-current={active === link.id ? 'true' : undefined}
                 className={`font-cond whitespace-nowrap px-1 py-1 uppercase tracking-[0.14em] transition-colors ${
                   active === link.id ? 'text-accent' : 'text-ash hover:text-mist'
                 }`}
               >
                 {link.label}
-              </button>
+              </MagneticButton>
             </li>
           ))}
         </ul>
@@ -243,6 +245,7 @@ export default function App() {
       </a>
 
       <CustomCursor />
+      <ScrollProgress />
       <Navbar />
       <Preloader />
 

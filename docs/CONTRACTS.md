@@ -96,7 +96,18 @@ con rAF-throttle (Lenis actualiza `window.scrollY` nativo).
   altura — aprobado por el Director en R1a).
 - **`SectionHeading`** (DUEÑO: uidesign): `{ eyebrow; title; subtitle?; align? }`;
   **`Reveal`**: `{ className?; children }` wrapper de entrada.
-- **Nuevos componentes:** registrarlos aquí con sus props al crearlos.
+- **Nuevos componentes registrados (R1b):**
+  - **`MagneticButton`** (DUEÑO: uidesign, `export default` + `forwardRef`):
+    `{ children; className?; strength?: number /* 0-1, def. 0.35 */; onClick?;
+    onFocus?; onPointerMove?; onPointerLeave? } & ButtonHTMLAttributes<HTMLButtonElement>`.
+    Atracción desactivada con `prefers-reduced-motion` y `(pointer: coarse)`.
+    Consumidores: `Footer`, `Gallery` y el nav de `App.tsx` (Director).
+  - **`ScrollProgress`** (DUEÑO: scrollfx, `export default`, sin props): barra de
+    progreso tipo circuito, decorativa (`aria-hidden`); devuelve `null` con
+    reduced-motion. Montada en `App.tsx` (Director).
+  - **`Preloader`** (DUEÑO: uidesign, `export default`, sin props): emisor de
+    `preloader:done` (§4.1). Montado en `App.tsx` (Director).
+  - **`HeroGlow` / `SpeedParticles`** (DUEÑO: hero3d): internos de `three/**`.
 
 ## 6 · Reglas duras
 1. Un solo dueño por archivo (tabla de `TEAM.md`); cambios ajenos → solicitud.

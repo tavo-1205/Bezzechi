@@ -85,19 +85,19 @@
     box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.35);
   }
 
-  /* Rojo = acento Aprilia; ámbar/verde se mapean a tokens existentes
-     (accent-300 y mist) hasta que el Director apruebe tokens propios. */
+  /* Rojo/ámbar/verde usan los tokens de señal aprobados en CONTRACTS §1
+     (--color-signal-red/amber/green); sin tokens nuevos. */
   .x-light--on.x-red {
-    background-color: var(--color-accent);
-    box-shadow: 0 0 28px var(--color-accent), inset 0 0 16px rgba(255, 255, 255, 0.35);
+    background-color: var(--color-signal-red);
+    box-shadow: 0 0 28px var(--color-signal-red), inset 0 0 16px rgba(255, 255, 255, 0.35);
   }
   .x-light--on.x-amber {
-    background-color: var(--color-accent-300);
-    box-shadow: 0 0 28px var(--color-accent-300), inset 0 0 16px rgba(255, 255, 255, 0.35);
+    background-color: var(--color-signal-amber);
+    box-shadow: 0 0 28px var(--color-signal-amber), inset 0 0 16px rgba(255, 255, 255, 0.35);
   }
   .x-light--on.x-green {
-    background-color: var(--color-mist);
-    box-shadow: 0 0 32px var(--color-mist), inset 0 0 16px rgba(255, 255, 255, 0.5);
+    background-color: var(--color-signal-green);
+    box-shadow: 0 0 32px var(--color-signal-green), inset 0 0 16px rgba(255, 255, 255, 0.5);
   }
 
   @media (prefers-reduced-motion: reduce) {

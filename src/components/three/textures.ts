@@ -117,6 +117,31 @@ export function createRubberTexture(repeat = 4): CanvasTexture {
 }
 
 /**
+ * Halo radial blanco con caída suave (128 px). Se usa como `map` de sprites y
+ * planos **aditivos** para fingir un bloom ligero y el charco de luz de boxes
+ * sin postprocesado externo: la caída la aporta el canal alfa del degradado.
+ */
+export function createGlowTexture(size = 128): CanvasTexture {
+  const { canvas, ctx } = createCanvas(size);
+
+  if (ctx) {
+    const center = size / 2;
+    const grad = ctx.createRadialGradient(center, center, 0, center, center, center);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.22, 'rgba(255,255,255,0.62)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0.2)');
+    grad.addColorStop(0.78, 'rgba(255,255,255,0.05)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
+/**
  * Disco de freno ventilado: acero con orificios y ranuras radiales.
  * La UV de las tapas del cilindro es radial, así que el patrón circular
  * dibujado aquí encaja directamente sobre la cara del disco.

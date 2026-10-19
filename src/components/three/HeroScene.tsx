@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei';
 import Bike from './Bike';
 import Rig from './Rig';
+import HeroGlow from './Glow';
 import SpeedParticles from './SpeedParticles';
 import { useBreakpoint } from './useBreakpoint';
 import type { HeroPointer } from './pointer';
@@ -12,7 +13,8 @@ import type { HeroPointer } from './pointer';
  * - Iluminación con <Environment> + <Lightformer> locales (sin HDR externo).
  * - Moto procedural con sombra de contacto; en móvil se pide detalle reducido
  *   a `Bike` (menos draw calls) manteniendo los mismos materiales.
- * - Trazas de velocidad instanciadas (ausentes con reduced motion).
+ * - Trazas de velocidad instanciadas (ausentes con reduced motion) y halos
+ *   aditivos como postprocesado ligero (estáticos con reduced motion).
  */
 
 interface HeroSceneProps {
@@ -57,6 +59,8 @@ export default function HeroScene({ pointerRef, reduced }: HeroSceneProps) {
           resolution={192}
           color="#000000"
         />
+
+        <HeroGlow x={bikeX} reduced={reduced} />
 
         {!reduced && <SpeedParticles mobile={mobile} />}
 

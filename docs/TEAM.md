@@ -89,11 +89,12 @@ prioriza en §8 (crítica / alta / media) → especialistas corrigen → se repi
 | `src/index.css` | Director | en curso | import de `extras.css` ya hecho |
 | `src/styles/extras.css` | uidesign | hecho | clases con prefijo `x-` |
 | `App.tsx`, `main.tsx`, `index.html` | Director | pendiente | único integrador |
-| `components/Hero3D.tsx`, `components/three/**` | hero3d | en curso | H3.1 hecho; espera revisión del Director (§9) |
+| `components/Hero3D.tsx`, `components/three/**` | hero3d | en curso | H3.1 aprobado; H3.2 hecho (trazas + glow aditivo, a11y del `h1`); espera revisión del Director (§9) |
 | `components/Preloader.tsx` (nuevo) | uidesign | hecho | emisor `preloader:done` |
 | `components/TiltCard.tsx`, `SectionHeading.tsx` | uidesign | hecho | primitivas de UI |
 | `components/Gallery.tsx`, `Footer.tsx` | uidesign | hecho | conservar a11y del lightbox |
-| `lib/scroll.ts`, `components/Timeline.tsx`, `Calendar.tsx` | scrollfx | pendiente | espera `preloader:done` |
+| `components/MagneticButton.tsx` (nuevo) | uidesign | hecho | atracción al puntero (lerp + `translate3d`) |
+| `lib/scroll.ts`, `components/Timeline.tsx`, `Calendar.tsx`, `components/ScrollProgress.tsx` (nuevo, sin montar) | scrollfx | en curso | R1b: Lenis detenido hasta `preloader:done` · pin/scrub + moto · `ScrollProgress` pendiente de montar por el Director |
 | `components/LiveScoreboard.tsx`, `StatsCharts.tsx`, `CareerStats.tsx` | livedata | en curso | estilo cabina |
 | `data/api.ts`, `data/snapshot.json` | — | **congelado** | no editar |
 | `data/content.ts` | Director | **congelado** | solo con solicitud aprobada |
@@ -113,7 +114,12 @@ prioriza en §8 (crítica / alta / media) → especialistas corrigen → se repi
 ## 7 · Solicitudes al Director
 
 - **[R1a · livedata] RESUELTA:** firma completa de `StatsCharts` (con `compact?`)
-  reflejada en CONTRACTS §5. Sin más solicitudes abiertas.
+  reflejada en CONTRACTS §5.
+- **[R1b · scrollfx] RESUELTA:** `ScrollProgress` registrada en CONTRACTS §5 y
+  montada en `App.tsx` (tras `<CustomCursor />`) por el Director.
+- **[R1b · uidesign] RESUELTA:** `MagneticButton` registrado en CONTRACTS §5 y
+  aplicado por el Director en el nav de `App.tsx`.
+- Sin solicitudes abiertas.
 
 ## 8 · Incidencias QA
 
@@ -154,5 +160,70 @@ _(vacío — formato: prioridad crítica|alta|media · archivo:línea · problem
 - **[R1a · Director]** Integración: `<Preloader />` montado en `App.tsx` (eager,
   tras el skip-link), tokens `signal-red/amber/green` añadidos a `index.css`
   (aprobados), CONTRACTS §5 actualizado (`compact?`) y solicitud de livedata
-  cerrada en §7. Pendiente: typecheck+build+commit de cierre de R1a y revisión
-  visual de H3.1 antes de autorizar H3.2.
+  cerrada en §7. `typecheck`+`build` verdes y commit `01d8ac7`.
+- **[R1a · Director · revisión H3.1]** **Aprobado.** `materials.ts` memoiza y
+  libera materiales+texturas (`dispose`), paleta fiel a los tokens, `reduced`
+  respetado en ruedas/cámara, `detailed={!mobile}` recorta draw calls en móvil.
+  Nota: no hubo revisión **visual** porque el panel del navegador integrado está
+  oculto (sin render ni capturas — ver DECISIONS); el canvas del hero se vio
+  `hidden` en el DOM. **Autorizado H3.2** (partículas/postprocesado sin
+  dependencias nuevas; si hace falta una librería → solicitud en §7).
+- **[R1b · hero3d] H3.2 hecho: trazas de velocidad instanciadas + glow aditivo
+  (sin librerías nuevas) + a11y del `h1`; typecheck+build verdes. Espero revisión
+  del Director.**
+  - `three/SpeedParticles.tsx` reescrito: 1 draw call (240 trazas escritorio / 96
+    móvil) con `AdditiveBlending` + `toneMapped:false`, `depthWrite:false` y color
+    por instancia (mist/ash + acento #ff4d00/`#ff8a3d`); capa "cercana a cámara"
+    (22 % de las trazas, z 1,2→3,4, velocidad 11-20) para parallax fuerte sobre la
+    capa principal (z −4,6→0,8, velocidad 6-13, alturas sesgadas hacia la moto);
+    longitud proporcional a la velocidad (0,65→1,7) y grosor variable; **cero
+    allocations por frame** (hash determinista para calles/grosor/brillo y
+    `Object3D` memoizado) y reciclado por módulo sobre el carril (±9) que elimina
+    los "racimos" del respawn aleatorio anterior; `DynamicDrawUsage` en las matrices.
+  - **Postprocesado ligero sin dependencias nuevas**: `three/Glow.tsx` (nuevo) con
+    halos y charco de luz aditivos (2 sprites + 1 plano en el asfalto con
+    `renderOrder` −1) que fingen bloom de caja; el halo queda ocluido por la
+    geometría opaca de la moto y solo se ve alrededor del contorno. Textura
+    `createGlowTexture()` nueva en `textures.ts` (degradado radial, `dispose()`
+    al desmontar). Pulso lentísimo con `useFrame`; con reduced-motion queda
+    congelado en su valor base.
+  - `Hero3D.tsx`: espacio real entre los dos spans del `h1` → el nombre accesible pasa
+    de "MARCOBEZZECCHI" a "Marco Bezzecchi" (verificado con `renderToStaticMarkup`)
+    sin cambio de layout (spans de bloque). `materials.ts` (H3.1) **intacto**.
+  - Sin cablear aún `preloader:done` (entrada/arranque = H3.3). `typecheck` y `build`
+    en **verde** (build 8,24 s; se mantiene el aviso de chunk `three` >900 kB, ajeno).
+    Sin solicitud en §7: no hizo falta ninguna librería.
+- **[R1b · uidesign]** `MagneticButton` (nuevo): botón `<button type="button">`
+  con atracción al puntero (lerp estilo resorte + `translate3d`, `strength`
+  opcional, defecto 0.35); reenvía `className`, `onClick`, `aria-*`, `ref`
+  (forwardRef) y el resto de props de botón; desactivado por completo con
+  `prefers-reduced-motion: reduce` y `(pointer: coarse)`; vuelve al centro al
+  salir del ratón y al recibir foco por teclado sin romper tabulación ni foco
+  visible; un handler por evento y cancel de rAF en el unmount. Se aplica en
+  `Footer.tsx` ("Volver al inicio") y `Gallery.tsx` (flechas del carrusel y
+  botones anterior/siguiente/cerrar del lightbox, conservando la a11y existente).
+  `extras.css`: luces del semáforo `.x-light--on` ahora usan los tokens de señal
+  `--color-signal-red/amber/green` de CONTRACTS §1 (sin tokens nuevos).
+  `typecheck` + build en **verde**.
+- **[R1b · scrollfx]** Implementado: Contrato §4.1 en `scroll.ts` (Lenis nace
+  detenido; arranca con `preloader:done`/`dataset.preloader` ya `done` o safety
+  4,5 s; listener retirado en destroy; `scrollToSection()` no-op bloqueado;
+  `startScroll()` respeta el stop externo del lightbox; firmas intactas);
+  `Timeline.tsx` con **pin+scrub** (ventana `100svh`, track trasladado con fin
+  function-based + `invalidateOnRefresh`, `will-change` solo durante el pin) y
+  **moto SVG** que recorre la línea de acento según el progreso del pin; hitos
+  revelados vía `containerAnimation` (sincronizados con el recorrido);
+  `Calendar.tsx` con entrada coherente (paneles fade+y + cascada de tarjetas,
+  countdown y a11y intactos); **nuevo `components/ScrollProgress.tsx`** (barra
+  2 px accent fija + marcador moto, `aria-hidden`, cero overflow horizontal,
+  `scroll`/`resize` nativos con rAF, no se renderiza con reduced-motion) —
+  **pendiente de montar en `App.tsx` por el Director**. Con reduced-motion: sin
+  pin, todo visible/estático. `typecheck`+`build` **verdes** (build 916 ms;
+  primer typecheck falló por errores TS ajenos, de `MagneticButton.tsx`; el
+  reintento tras ~35 s ya salió verde).
+- **[R1b · Director]** Revisión de código **H3.2 aprobada** (`Glow.tsx` sin
+  dependencias nuevas, texturas con `dispose()`, `reduced` congelado) →
+  **autorizado H3.3**. Integración R1b: `MagneticButton` y `ScrollProgress`
+  importados y montados en `App.tsx` (`ScrollProgress` tras `<CustomCursor />`,
+  nav con `MagneticButton strength 0.15-0.2`), CONTRACTS §5 con los tres
+  componentes nuevos y §7 sin solicitudes abiertas.
