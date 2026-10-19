@@ -75,13 +75,16 @@ const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>(
       }
       position.current.x += (target.current.x - position.current.x) * LERP;
       position.current.y += (target.current.y - position.current.y) * LERP;
-      el.style.transform = `translate3d(${position.current.x.toFixed(2)}px, ${position.current.y.toFixed(2)}px, 0)`;
       const done =
         Math.abs(target.current.x - position.current.x) < EPSILON &&
         Math.abs(target.current.y - position.current.y) < EPSILON;
       if (done) {
         active.current = false;
+        // Queda exactamente en el destino (sin residuo del EPSILON) y solo
+        // desde el bucle: un re-render del padre nunca lo pisa.
+        el.style.transform = `translate3d(${target.current.x.toFixed(2)}px, ${target.current.y.toFixed(2)}px, 0)`;
       } else {
+        el.style.transform = `translate3d(${position.current.x.toFixed(2)}px, ${position.current.y.toFixed(2)}px, 0)`;
         frame.current = requestAnimationFrame(step);
       }
     };
@@ -145,22 +148,36 @@ const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>(
         ref={attachRef}
         type="button"
         onClick={onClick}
-        onFocus={(event): void => {
-          returnHome();
-          onFocus?.(event);
-        }}
-        onPointerMove={(event): void => {
-          pull(event);
-          onPointerMove?.(event);
-        }}
-        onPointerLeave={(event): void => {
-          returnHome();
-          onPointerLeave?.(event);
-        }}
+        onFocus={
+          enabled
+            ? (event): void => {
+                returnHome();
+                onFocus?.(event);
+              }
+            : onFocus
+        }
+        onPointerMove={
+          enabled
+            ? (event): void => {
+                pull(event);
+                onPointerMove?.(event);
+              }
+            : onPointerMove
+        }
+        onPointerLeave={
+          enabled
+            ? (event): void => {
+                returnHome();
+                onPointerLeave?.(event);
+              }
+            : onPointerLeave
+        }
         className={className}
         style={{
           ...style,
-          transform: `translate3d(${position.current.x.toFixed(2)}px, ${position.current.y.toFixed(2)}px, 0)`,
+          // El transform se escribe exclusivamente desde el bucle `step()` (y
+          // al desactivarse, en el efecto de `enabled`). Que el render lo
+          // reescribía en cada render y provocaba saltos a mitad de animación.
           willChange: enabled ? 'transform' : undefined,
         }}
         {...rest}

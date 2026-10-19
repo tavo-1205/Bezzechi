@@ -29,6 +29,9 @@ const ERA_STYLE: Record<TimelineEntry['era'], { chip: string; dot: string }> = {
 };
 
 export default function Timeline(): ReactElement {
+  // Scope de TODAS las queries del efecto (QA-08): la sección, no el documento.
+  const sectionRef = useRef<HTMLElement>(null);
+  // Pin/scrub: ventana acotada que se "pincha".
   const rootRef = useRef<HTMLDivElement>(null);
   // `reduced` decide el markup (sin pin/overflow si el usuario lo pide).
   const [reduced] = useState<boolean>(
@@ -38,10 +41,18 @@ export default function Timeline(): ReactElement {
   );
 
   useEffect(() => {
-    const root = rootRef.current;
-    if (reduced || !root) return undefined;
+    if (reduced) return undefined;
 
     gsap.registerPlugin(ScrollTrigger);
+
+    // QA-08: queries acotadas por ref (nunca `document.querySelector`).
+    // - `root` (pin viewport): track/línea/moto/hitos/figcaption.
+    // - `section` (árbol completo del tramo): el bloque `data-tl-head`, que vive
+    //   FUERA del pin viewport (la cabecera debe alejarse antes del anclado);
+    //   un `root.querySelector` la perdería (null) por diseño del layout.
+    const section = sectionRef.current;
+    const root = rootRef.current;
+    if (!root) return undefined;
 
     const track = root.querySelector<HTMLElement>('[data-tl-track]');
     const fill = root.querySelector<HTMLElement>('[data-tl-progress]');
@@ -101,8 +112,8 @@ export default function Timeline(): ReactElement {
         paint(1);
       }
 
-      // Entrada del bloque de título, en la línea del recorrido.
-      const head = document.querySelector<HTMLElement>('[data-tl-head]');
+      // Entrada del bloque de título (QA-08: acotado a la sección).
+      const head = section?.querySelector<HTMLElement>('[data-tl-head]');
       if (head) {
         gsap.from(head.children, {
           opacity: 0,
@@ -146,7 +157,12 @@ export default function Timeline(): ReactElement {
     : 'relative mt-10 md:mt-14 h-[100svh] overflow-hidden';
 
   return (
-    <section id="trayectoria" className="section scroll-mt-24" aria-labelledby="trayectoria-title">
+    <section
+      id="trayectoria"
+      ref={sectionRef}
+      className="section scroll-mt-24"
+      aria-labelledby="trayectoria-title"
+    >
       <div className="container-x">
         <div data-tl-head className="max-w-2xl">
           <p className="eyebrow">Biografía · Trayectoria</p>

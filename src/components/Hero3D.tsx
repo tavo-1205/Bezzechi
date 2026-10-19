@@ -142,9 +142,20 @@ export default function Hero3D(): ReactElement {
         aria-hidden="true"
       />
 
-      {/* Número 72 gigante de fondo */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex translate-x-[8%] items-center select-none" aria-hidden="true">
-        <span className="num font-display text-outline text-[clamp(16rem,40vw,42rem)] leading-none font-black">72</span>
+      {/* Número 72 gigante de fondo (decorativo, QA-03).
+          El contenedor ocupa exactamente la caja de la sección (`inset-0`) y
+          recorta su propio contenido (`overflow-hidden`), mientras que el
+          desplazamiento que saca el "72" por el borde va en el `span`
+          (`translate-x-[8%]`, mismo píxel que antes). Así el "72" sigue asomando
+          recortado por el borde derecho pero su caja nunca sale del viewport:
+          no puede aportar ancho al `scrollWidth` del documento. */}
+      <div
+        className="pointer-events-none absolute inset-0 flex items-center justify-end overflow-hidden select-none"
+        aria-hidden="true"
+      >
+        <span className="num font-display text-outline translate-x-[8%] text-[clamp(16rem,40vw,42rem)] leading-none font-black">
+          72
+        </span>
       </div>
 
       {/* Capa 3D */}

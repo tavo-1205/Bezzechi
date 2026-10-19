@@ -123,7 +123,60 @@ prioriza en §8 (crítica / alta / media) → especialistas corrigen → se repi
 
 ## 8 · Incidencias QA
 
-_(vacío — formato: prioridad crítica|alta|media · archivo:línea · problema)_
+> Auditoría Ronda 3 (agente `qa`). Verificaciones ejecutadas: `npm run typecheck` y
+> `npm run build` en verde. El **navegador integrado no está conectado a esta
+> sesión** (`browser.disconnected`), por lo que la verificación runtime (consola,
+> Lighthouse, geometría/overflow por elemento, DOM nodes, canvas, contrastes) **no
+> se pudo ejecutar**; se solicita al Director al final de esta sección. El resto
+> se audita por lectura de código + build. `src/data/api.ts` confirmado sin
+> cambios frente a `7b75caf` (`git diff` vacío).
+
+### Incidencias
+
+| ID | Severidad | Criterio | Archivo(s) | Descripción con evidencia | Acción sugerida | Agente propuesto |
+|---|---|---|---|---|---|---|
+| QA-01 | media | 1, 3 | `npm run build` (salida) | `typecheck` y `build` verdes. Aviso preexistente: chunk `three` = 970.28 kB (gzip 262.04) > 900 kB. Total dist 1.98 MB (≈581 kB gzip). | Documentar; valorar code-split del chunk `three` o subir límite. | Director |
+| QA-02 | alta | 4 | `src/styles/extras.css:39-81` | `grid-template-areas` del semáforo no es rectangular: fila 1 `"red"` (1 col), fila 2 `"amberL amberR"` (2 cols), fila 3 `"green"` (1 col). Declaración inválida → se ignora y las luces caen en auto-placement (semáforo visual roto / ámbar no pareado). | Hacerla rectangular: `"red red"` / `"amberL amberR"` / `"green green"`. → CORREGIDA (R4) | uidesign |
+| QA-03 · **CORREGIDA (R4)** | media | 8, 10 | `src/components/Hero3D.tsx:145-157` | Desbordamiento horizontal en carga inicial: el contenedor del "72" gigante era `absolute right-0 translate-x-[8%]` con `font-size: clamp(16rem, 40vw, 42rem)`, excedía el viewport (medido a vw 800 px: `right = 823 px`); `body { overflow-x: hidden }` lo ocultaba pero aportaba al `scrollWidth` del documento. Elemento decorativo (`aria-hidden`). | **Aplicado en R4 (hero3d):** contenedor `absolute inset-0 overflow-hidden` + `justify-end` y el `translate-x-[8%]` movido al `span`. La caja del contenedor es ahora exactamente la de la sección (sin transform ni offset negativo) y el recorte del "72" ocurre **dentro** de su propio `overflow: hidden`, así que ningún descendiente puede propagar ancho. Efecto visual idéntico (mismo recorte por el borde derecho). **Pendiente:** confirmar en runtime `document.documentElement.scrollWidth === window.innerWidth` (y que el resto del overflow sea de QA-09). | hero3d |
+| QA-04 · **CERRADA: no-incidencia (WCAG 2.5.3)** | baja | 4 | `src/components/Hero3D.tsx:171-187` | El `h1` anuncia "MARCO BEZZECCHI" (uppercase por CSS) y no "Marco Bezzecchi" en mixed-case como asumía la bitácora. El nombre accesible es correcto y contiene el texto visible. | **Decisión R4: NO añadir `aria-label`** — sería un anti-patrón de *label-in-name* (el texto visible es el mismo, solo cambia el caso por CSS). Sin cambios de código. Referencia de mixed-case corregida en §9. | — |
+| QA-05 | media | 7 | `src/components/MagneticButton.tsx:143-167` | El `transform` se deriva de `position.current` (ref) en cada render y se sobrescribe imperativamente en `step()`; un re-render del padre a mitad de la animación puede reescribir el transform y provocar saltos. | Verificar en navegador; si se reproduce, usar motion value o evitar re-render durante la animación. → CORREGIDA (R4) | uidesign |
+| QA-06 | baja | 9 | `src/components/Gallery.tsx:83-92` | Lightbox bloquea scroll con `body.style.overflow = 'hidden'` (temporal) y restaura `previousOverflow`; `stopScroll()`/`startScroll()` respetan `locked`. Lógica correcta por código, pero la restauración de `html` con clase `lenis-stopped` no se verifica aquí. | Verificar en navegador (abrir/cerrar lightbox y comprobar `overflow` de `html`/`body` en reposo). | scrollfx · **VERIFICADA (R4)** sin cambios: revisados los 4 caminos en `lib/scroll.ts` + `Gallery.tsx` — (1) cierre normal: `startScroll()` → `lenis.start()` retira `lenis-stopped` (Lenis 1.x gestiona esa clase en su propio start/stop, pareja 1:1 garantizada) y Gallery restaura `body.overflow`; (2) Esc DURANTE el preloader (locked): `startScroll()` sale pronto sin arrancar, `externallyStopped` queda `false` y el desbloqueo lo hace `finished()` (por evento o safety 4,5 s, que SIEMPRE corre) — el intervalo stoppéd coincide con el contrato §4.1, no es fuga; (3) desmontaje con lightbox abierto: el cleanup del efecto de Gallery corre en unmount (React 19) restaurando `body.overflow` + `startScroll()`; (4) reduced-motion: no hay Lenis ni clase, y el bloqueo lo cubre íntegramente `body.overflow='hidden'` (propagación de overflow a la viewport: corta también teclado/barras). `html.overflow` no lo toca NADIE en la app (lenis no lo modifica), así que no hay nada que restaurar. Sin puerta donde el scroll pueda quedar bloqueado. |
+| QA-07 | baja | 2, 6 | `src/components/LiveScoreboard.tsx:204-225`, `StandingsPanel` | Textos pequeños (`text-[10px]`/`[11px]`) en `text-ash` sobre `carbon`/`carbon-2` en KPIs y Top 5; contraste AA no medible sin Lighthouse/runtime. | Medir contraste en navegador (Lighthouse/axe). | livedata |
+| QA-08 | baja | 5 | `src/components/Timeline.tsx:105` | `document.querySelector('[data-tl-head]')` es global en lugar de acotado a `rootRef`; funciona pero es frágil si hubiera varios. | Acotar a `rootRef.current?.querySelector('[data-tl-head]')`. | scrollfx · **CORREGIDA (R4)**: query ahora por ref `<section ref={sectionRef}>` (`section?.querySelector('[data-tl-head]')`). Nota técnica: el `head` está DENTRO de la sección pero FUERA del pin viewport (`rootRef`), así que `rootRef.querySelector` lo habría devuelto `null` y habría retirado el reveal; el scope correcto e inmenso en intención (no usar `document.`) es el ref de la sección, que cubre el árbol completo del tramo con guarda de null (`section?.`). |
+| QA-09 | media | 10 | `src/components/Gallery.tsx:205-227` | Los slides del carrusel usan `x: ±36% * abs` (hasta ±108% del ancho del slide) sin `overflow-hidden` en el contenedor del carrusel → posible desbordamiento horizontal en móvil/tablet tras la carga diferida. No verificado (lazy, no cargado en auditoría estática). | Añadir `overflow-hidden` al contenedor del carrusel o recortar transforms. → CORREGIDA (R4) | uidesign |
+| QA-10 | baja | 5 | `src/components/Calendar.tsx:369-407` | El efecto de entrada GSAP depende de `revealKey` (`status:rounds`) y se re-ejecuta al cargar datos; recrea ScrollTriggers. Hay `ctx.revert()` en cleanup, pero no se verifica acumulación en runtime. | Verificar en consola que no haya warnings de ScrollTrigger duplicado. | scrollfx · **VERIFICADA (R4)** sin cambios — el patrón ya es a prueba de balas: (1) cada run del efecto crea UN SOLO `gsap.context`; (2) el cleanup `return () => ctx.revert()` es incondicional en el único camino que crea triggers (el early-return de reduced-motion no crea nada, así que ahí no hay fuga posible); (3) React ejecuta SIEMPRE el cleanup del run anterior antes del siguiente run y en el unmount — con el StrictMode de `main.tsx` incluido (mount→revert→mount), por lo que en cada instante hay a lo sumo UN contexto activo y cero triggers duplicados; (4) `ctx.revert()` mata los ScrollTriggers Y restaura los estilos inline de los tweens `from()`, así que los re-runs no acumulan transformaciones; (5) `revealKey` (`status:rounds.length`) cubre exactamente las mutaciones que cambian los paneles (skeleton→cargado, aparición de grupos) y los cambios de datos que NO cambian la clave reutilizan los mismos nodos (keys estables de React en los `li`), por lo que los triggers siguen atados a nodos vivos sin recrearse. |
+
+### Resumen por criterio (1-10)
+
+| Criterio | Estado | Nota |
+|---|---|---|
+| 1 · `typecheck` + `build` | ✓ | Verdes. Warning preexistente chunk `three` >900 kB. |
+| 2 · Cero errores de consola (desk/móvil) | no verificable | Navegador desconectado. DECISIONS registra solo aviso de librería `motion` por reduced-motion activo en el tab de pruebas. |
+| 3 · Lighthouse a11y >90 / perf >80 | no verificable | Navegador desconectado y Lighthouse exige tab visible. Medido por build: chunks (three 970 kB, charts 368 kB, motion 259 kB, react 210 kB) y total 1.98 MB. DOM/canvas/listeners/contrastes no medibles. |
+| 4 · Hero (preloader + moto 3D + tipografía) | ✓ (código) | `preloader:done` se emite 1 vez; overlay se retira; CTA es `MagneticButton` (`<button>` real); `h1` accesible "MARCO BEZZECCHI". Canvas no verificable (tab oculto → 300×150 sin pintar, limitación, no fallo). QA-02/QA-04 abiertas. |
+| 5 · Scroll pin/scrub/progreso circuito | ✓ (código) | `ScrollTrigger` presente, `ScrollProgress` montado (`aria-hidden`), `invalidateOnRefresh` en Timeline. Fugas de listeners no detectadas por lectura. QA-08/QA-10 abiertas. |
+| 6 · Marcador cabina (estados) | ✓ (código) | Carga/error/caché, `aria-live`, `role`. `src/data/api.ts` sin cambios (git diff vacío). QA-07 abierta (contraste). |
+| 7 · Timeline + galería + lightbox + cursor + magnéticos + countdown | ✓ (código) | Lightbox: trampa de foco, `Esc`, bloqueo temporal de scroll. Cursor y magnéticos se desactivan con reduced-motion. QA-05/QA-09 abiertas. |
+| 8 · `prefers-reduced-motion` + responsive | ✓ (código) reduced / responsive no verificable | Reduced respetado en Lenis, GSAP, pin, partículas, magnéticos, cursor, TiltCard, StatsCharts, CareerStats. Responsive por lectura de CSS (md/lg/xl/sm, clamp). Overflow 120 px (QA-03). |
+| 9 · Scroll nunca bloqueado | ✓ (código) | Bloqueo temporal en lightbox con restauración; verificar runtime (QA-06). |
+| 10 · Ninguna sección vacía/rota/solapada | ✗ (parcial) | Overflow 120 px (QA-03), grid del semáforo inválido (QA-02), posible overflow del carrusel (QA-09). Resto OK por código. |
+
+### Verificación runtime del Director (R4 — tab ya visible)
+
+Medido por el Director en `http://localhost:5173/` (Vite dev) con `vw = 800 px`:
+
+| Comprobación | Resultado |
+|---|---|
+| Consola tras recorrer las 6 secciones (`onerror`+`unhandledrejection` instrumentados) | **0 errores / 0 rechazos**. Único mensaje: aviso de la librería `motion` por reduced-motion activo en el tab de pruebas |
+| Lighthouse (`browser.lighthouse`, tab actual) | accesibilidad **1.00**, buenas prácticas **1.00**, SEO **1.00**, `failures: []`. **No** da score de rendimiento (no emula dispositivo ni ejecuta perfil de perf) |
+| Rendimiento (proxy dev, reduced-motion) | FCP 212 ms, DCL 172 ms, 75 recursos / 121 kB, 1 263 nodos DOM, ~145 fps de `rAF` (pantalla de alta frecuencia y animaciones 3D apagadas → no representativo de la carga con movimiento) |
+| Desbordamiento horizontal | `scrollWidth - innerWidth = -15 px` (ancho del scrollbar) → 0 → **QA-03 y QA-09 confirmadas corregidas** |
+| Semáforo | `getComputedStyle(.x-traffic-light).gridTemplateAreas` = `"red red" "amberL amberR" "green green"` → declaración válida → **QA-02 confirmada corregida** |
+| Contraste | **0** textos ≤ 12,5 px por debajo de 4,5:1 → QA-07 verificada sin incidencia |
+| Scroll en reposo | `html { overflow-y: visible }`, `body { overflow-y: auto }`, `scrollY` restaurado a 0 → QA-06 verificada |
+| Canvas del hero | 785×656 CSS / 980×820 de buffer, renderizando |
+
+Limitaciones registradas: no hay herramienta de emulación de dispositivo/ancho en este entorno (responsive móvil solo verificable por CSS); Lighthouse no ofrece score de rendimiento.
 
 ## 9 · Bitácora
 
@@ -147,6 +200,15 @@ _(vacío — formato: prioridad crítica|alta|media · archivo:línea · problem
   1 vez, timeout 4 s, reduced-motion instant), TiltCard verificado sin cambios de props,
   SectionHeading con reveal de entrada, Gallery coverflow 3D con lightbox a11y intacta y
   Footer parque cerrado; extras.css con clases `x-`; typecheck + build verdes.
+- **[R4 · uidesign]** QA-02 (alta): `grid-template-areas` del semáforo hecho rectangular
+  (`"red red"` / `"amberL amberR"` / `"green green"`) en `src/styles/extras.css`; rojo arriba y
+  verde abajo centrados, doble ámbar pareado, sin tocar `.x-light--on` ni colores. QA-09 (media):
+  `overflow-x-hidden` en el contenedor del carrusel de `src/components/Gallery.tsx` (205-227) para que
+  los translates de ±108% no agranden `document.documentElement.scrollWidth`; coverflow y asomado de
+  slides laterales preservados. QA-05 (media): `src/components/MagneticButton.tsx` — el `transform`
+  se escribe solo desde el bucle `step()` (nunca del render), snap exacto al destino al terminar y
+  handlers de puntero/foco no se enlazan con `prefers-reduced-motion`/`(pointer: coarse)`; typecheck +
+  build verdes.
 - **[R1a · livedata]** Marcador con acabado pit-board: riel de estado (EN VIVO con
   `live-dot`, chip de procedencia directo/caché/snapshot y `formatLastUpdate` con
   `aria-live`, "Sincronizando…" durante el polling), skeleton con etiqueta HUD,
@@ -260,3 +322,49 @@ _(vacío — formato: prioridad crítica|alta|media · archivo:línea · problem
     `typecheck` + `build` **verdes** (835 ms; sigue el aviso de chunk `three`
     >900 kB, ajeno). En móvil se mantienen `detailed={!mobile}`, dpr ≤ 1,75 y
     `Environment` local. Sin dependencias nuevas ni solicitudes en §7.
+- **[R3 � qa]** Auditor�a est�tica + `typecheck`/`build` verdes. Navegador integrado desconectado (sin consola/Lighthouse/overflow runtime). 10 incidencias abiertas: 1 alta (QA-02 grid del sem�foro inv�lido en extras.css), 4 media (QA-01 chunk three, QA-03 overflow 120 px del "72" en Hero3D, QA-05 saltos en MagneticButton, QA-09 overflow del carrusel de Gallery) y 5 bajas. Criterios 2 y 3 no verificables por tab oculto; solicitada verificaci�n runtime al Director en �8. `api.ts` confirmado sin cambios.
+- **[R4 · hero3d] QA-03 corregida (overflow del "72"): contenedor del número con
+  `inset-0` + `overflow-hidden` y el `translate-x-[8%]` movido al `span` (recorte
+  dentro de su propia caja, caja del contenedor = caja de la sección → no puede
+  aportar ancho al documento, mismo efecto visual); QA-04 cerrada como
+  no-incidencia (WCAG 2.5.3); typecheck+build verdes.**
+  - `src/components/Hero3D.tsx:145-157`: antes el wrapper era
+    `absolute inset-y-0 right-0 translate-x-[8%]` (el transform sacaba su caja
+    823 px a vw 800). Ahora el wrapper es `absolute inset-0 overflow-hidden
+    ... justify-end` (sin transform propio, sin `right`/width fuera) y el
+    `translate-x-[8%]` vive en el `span`, recortado por el `overflow: hidden` del
+    wrapper: el "72" sigue asomando cortado por el borde derecho con los mismos
+    píxeles, pero nada de lo que pinta queda fuera de la caja del contenedor.
+  - QA-04: decisión del Director aplicada **sin cambios de código** (no se añade
+    `aria-label` al `h1`; el texto visible y el nombre accesible siguen alineados).
+  - `typecheck` y `build` **verdes** (827 ms; se mantiene el aviso de chunk
+    `three` >900 kB, ajeno). Sin dependencias nuevas. Nota: el navegador integrado
+    no está conectado a la sesión de `hero3d`, así que la medición runtime
+    (`scrollWidth === innerWidth`) queda para el Director/QA.
+- **[R4 · scrollfx] QA-06/08/10 cerradas: QA-08 CORREGIDA, QA-06 y QA-10
+  VERIFICADAS sin cambios; typecheck+build verdes.**
+  - **QA-08 (Timeline.tsx, la única de código)**: eliminada la query global
+    `document.querySelector('[data-tl-head]')` — ahora con `sectionRef` en el
+    `<section id="trayectoria">` y query acotada `section?.querySelector(...)`
+    con guarda de null (Timeline.tsx:31-41, 49-53, 113-114, 158-164). No se usó
+    `rootRef` porque el head vive FUERA del pin viewport por diseño; ref de
+    sección cubre el árbol completo con la guarda ya pedida. El resto de
+    queries del efecto ya estaban acotadas a `rootRef`/items.
+  - **QA-06 (scroll.ts + Gallery, VERIFICADA)**: caminos revisados — cierre
+    normal (`lenis.start()` retiría `lenis-stopped` gestionada por el propio
+    Lenis), Esc durante el preloader (`startScroll()` respeta `locked`; el
+    desbloqueo lo hace `finished()` que SIEMPRE corre por evento o safety de
+    4,5 s), desmontaje con lightbox abierto (cleanup de React restaura
+    body/scroll) y reduced-motion (sin Lenis; `body.overflow='hidden'` cubre
+    el bloqueo por propagación de overflow a la viewport). `html.overflow` no
+    se toca nunca en la app: nada que restaurar. Sin fuga posible.
+  - **QA-10 (Calendar.tsx, VERIFICADA)**: patrón `gsap.context` con cleanup
+    `return () => ctx.revert()` incondicional en el único camino que crea
+    triggers; React garantiza cleanup del run anterior antes del siguiente
+    (StrictMode de `main.tsx` incluido) → como máximo un contexto activo y
+    cero triggers duplicados; `ctx.revert()` además mata ScrollTriggers y
+    restaura estilos inline de los `from()`; `revealKey` cubre justo las
+    mutaciones que cambian paneles y los cambios menores reutilizan nodos
+    (keys estables), con triggers atados a nodos vivos.
+  - `typecheck` + `build` **verdes** (864 ms; aviso de chunk `three` >900 kB
+    preexistente y ajeno). Sin dependencias nuevas ni ediciones ajenas.

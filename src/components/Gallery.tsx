@@ -202,7 +202,7 @@ export default function Gallery(): ReactElement {
             onPointerCancel={() => {
               pointerStart.current = null;
             }}
-            className="relative h-[360px] touch-pan-y select-none [perspective:1200px] sm:h-[440px] md:h-[500px]"
+            className="relative overflow-x-hidden h-[360px] touch-pan-y select-none [perspective:1200px] sm:h-[440px] md:h-[500px]"
           >
             {GALLERY.map((item, i) => {
               /* Distancia circular al índice activo: las fotos envuelven a ambos
