@@ -1,25 +1,23 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ensureScrollTrigger, prefersReducedMotion } from '../lib/gsapSetup';
 import { TIMELINE, type TimelineEntry } from '../data/content';
 
 /**
  * Trayectoria de Marco Bezzecchi (#72) — tramo "curvas del circuito".
  *
+ * REGLA DE ORO DEL COMPONENTE: **el contenido es visible por defecto**.
+ * Ningún elemento nace oculto por CSS ni por un `gsap.from()` que pueda quedarse
+ * sin revertir. Si el JS falla, si el plugin no está, o si el usuario pide menos
+ * movimiento, se ve la lista completa de hitos, estática y legible.
+ *
  * - El contenido NO se duplica aquí: se lee de `src/data/content` (TIMELINE).
- * - PIN + SCRUB: la sección queda anclada (pinned) mientras un wrapper interno
- *   se traslada con el scroll (recorrido vertical de la era). El progreso del
- *   pin dibuja la línea de acento y hace avanzar la MOTO por la línea.
- * - La línea/moto viven dentro del wrapper trasladado: la moto pasa por cada
- *   marcador de era en el mismo instante en que su tarjeta es visible.
- * - Each hito enters with a reveal tied to the SAME container animation
- *   (`containerAnimation`), así las entradas quedan sincronizadas con el
- *   recorrido y no dependen de medidas refrescadas a mano.
- * - Optimización: `invalidateOnRefresh` + fin function-based (recalcula en
- *   resize/fuentes; App.tsx ya lanza `ScrollTrigger.refresh()`), y
- *   `will-change` SOLO mientras el pin está activo (`onToggle`).
- * - Con `prefers-reduced-motion` no se pincha nada: sin pin, sin scrub, todo
- *   visible y estático (estado por defecto del DOM).
+ * - PIN + SCRUB: la sección queda anclada mientras el track se traslada con el
+ *   scroll. El progreso del pin dibuja la línea y hace avanzar la MOTO.
+ * - Las entradas de los hitos se aplican con `fromTo` + `immediateRender: false`
+ *   y solo cuando el pin existe de verdad (si no, no se anima nada).
+ * - `gsap.context()` + `ctx.revert()` garantizan la limpieza al desmontar.
+ * - Con `prefers-reduced-motion` no hay pin ni animaciones: todo visible.
  */
 
 const ERA_STYLE: Record<TimelineEntry['era'], { chip: string; dot: string }> = {
@@ -31,25 +29,18 @@ const ERA_STYLE: Record<TimelineEntry['era'], { chip: string; dot: string }> = {
 export default function Timeline(): ReactElement {
   // Scope de TODAS las queries del efecto (QA-08): la sección, no el documento.
   const sectionRef = useRef<HTMLElement>(null);
-  // Pin/scrub: ventana acotada que se "pincha".
+  // Ventana acotada que se "pincha".
   const rootRef = useRef<HTMLDivElement>(null);
   // `reduced` decide el markup (sin pin/overflow si el usuario lo pide).
-  const [reduced] = useState<boolean>(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
+  const [reduced] = useState<boolean>(() => prefersReducedMotion());
 
   useEffect(() => {
     if (reduced) return undefined;
 
-    gsap.registerPlugin(ScrollTrigger);
+    // El plugin ya está registrado en el arranque; esto es idempotente y evita
+    // depender del orden de importación entre chunks lazy.
+    const ScrollTrigger = ensureScrollTrigger();
 
-    // QA-08: queries acotadas por ref (nunca `document.querySelector`).
-    // - `root` (pin viewport): track/línea/moto/hitos/figcaption.
-    // - `section` (árbol completo del tramo): el bloque `data-tl-head`, que vive
-    //   FUERA del pin viewport (la cabecera debe alejarse antes del anclado);
-    //   un `root.querySelector` la perdería (null) por diseño del layout.
     const section = sectionRef.current;
     const root = rootRef.current;
     if (!root) return undefined;
@@ -75,86 +66,141 @@ export default function Timeline(): ReactElement {
     };
 
     // Espacio recorrible: exceso del track sobre la ventana acotada (pin).
-    const travel = (): number =>
-      Math.max(0, track.scrollHeight - root.clientHeight);
+    const travel = (): number => Math.max(0, track.scrollHeight - root.clientHeight);
 
-    const ctx = gsap.context(() => {
-      // Fill y moto parten en "meta" (0 %) antes de cualquier scroll;
-      // xPercent -50 centra la moto sobre la línea de 1 px.
-      gsap.set(fill, { scaleY: 0 });
-      gsap.set(moto, { xPercent: -50, y: 0 });
+    let ctx: gsap.Context | null = null;
 
-      // Recorrido principal: pin de la sección + traslación del track.
-      const scrollTween = gsap.to(track, {
-        y: () => -travel(),
-        ease: 'none',
-        scrollTrigger: {
-          id: 'tl-pin',
-          trigger: root,
-          start: 'top top',
-          end: () => `+=${travel()}`,
-          // Si el track no excede la ventana acotada, no anclar: contenido largo.
-          pin: travel() > 600,
-          anticipatePin: 1,
-          scrub: true,
-          invalidateOnRefresh: true,
-          onToggle: (self) => {
-            // will-change SOLO durante el pin (sin retener capa tras salir).
-            track.style.willChange = self.isActive ? 'transform' : '';
-          },
-          onUpdate: (self) => paint(self.progress),
-        },
-      });
+    const build = (): void => {
+      ctx = gsap.context(() => {
+        const travelPx = travel();
 
-      const pinST = scrollTween.scrollTrigger;
-      if (pinST && !pinST.pin) {
-        // Sin pin posible (track corto): contenido completo y estático.
-        paint(1);
-      }
+        // Sin recorrido suficiente no tiene sentido anclar: contenido estático y
+        // COMPLETO (nada de recortar). Es el caso que dejaba la sección en blanco.
+        if (travelPx < 120) {
+          gsap.set(fill, { scaleY: 1 });
+          gsap.set(moto, { xPercent: -50, y: 0 });
+          return;
+        }
 
-      // Entrada del bloque de título (QA-08: acotado a la sección).
-      const head = section?.querySelector<HTMLElement>('[data-tl-head]');
-      if (head) {
-        gsap.from(head.children, {
-          opacity: 0,
-          y: 28,
-          duration: 0.7,
-          stagger: 0.08,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: head, start: 'top 85%', once: true },
-        });
-      }
+        // Estado inicial del progreso (la moto va centrada sobre la línea de 1 px).
+        gsap.set(fill, { scaleY: 0 });
+        gsap.set(moto, { xPercent: -50, y: 0 });
 
-      // Hitos: revelados ligados a la MISMA animación contenedora.
-      gsap.utils.toArray<HTMLElement>('[data-tl-item]', root).forEach((item) => {
-        const reveal = gsap.timeline({
+        // Recorrido principal: pin + traslación del track.
+        const scrollTween = gsap.to(track, {
+          y: () => -travel(),
+          ease: 'none',
           scrollTrigger: {
-            trigger: item,
-            containerAnimation: scrollTween,
-            start: 'top 88%',
-            once: true,
+            id: 'tl-pin',
+            trigger: root,
+            start: 'top top',
+            end: () => `+=${travel()}`,
+            pin: true,
+            anticipatePin: 1,
+            scrub: true,
+            invalidateOnRefresh: true,
+            onToggle: (self) => {
+              // will-change SOLO durante el pin (sin retener capa tras salir).
+              track.style.willChange = self.isActive ? 'transform' : '';
+            },
+            onUpdate: (self) => paint(self.progress),
+            // Si algo impide al pin activarse, se asegura el contenido completo.
+            onRefresh: (self) => {
+              if (!self.pin) {
+                track.style.willChange = '';
+                gsap.set(track, { y: 0 });
+                gsap.set(fill, { scaleY: 1 });
+              }
+            },
           },
         });
-        reveal.from(item, { opacity: 0, y: 48, duration: 0.8, ease: 'power3.out' }, 0);
-        const marker = item.querySelector<HTMLElement>('[data-tl-marker]');
-        if (marker) reveal.from(marker, { scale: 0, duration: 0.45, ease: 'back.out(2)' }, 0.12);
-      });
 
-      ScrollTrigger.addEventListener('refresh', measure);
-    }, rootRef);
+        // Entrada del bloque de título.
+        const head = section?.querySelector<HTMLElement>('[data-tl-head]');
+        if (head) {
+          gsap.from(head.children, {
+            opacity: 0,
+            y: 28,
+            duration: 0.7,
+            stagger: 0.08,
+            ease: 'power3.out',
+            immediateRender: false,
+            scrollTrigger: { trigger: head, start: 'top 85%', once: true },
+          });
+        }
 
-    measure();
+        // Hitos: revelados ligados a la animación contenedora. `fromTo` con
+        // `immediateRender: false` para que el estado visible sea el del DOM
+        // hasta que el tween arranque de verdad.
+        gsap.utils.toArray<HTMLElement>('[data-tl-item]', root).forEach((item) => {
+          const reveal = gsap.timeline({
+            scrollTrigger: {
+              trigger: item,
+              containerAnimation: scrollTween,
+              start: 'top 88%',
+              once: true,
+            },
+          });
+          reveal.fromTo(
+            item,
+            { opacity: 0, y: 48 },
+            { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', immediateRender: false },
+            0,
+          );
+          const marker = item.querySelector<HTMLElement>('[data-tl-marker]');
+          if (marker) {
+            reveal.fromTo(
+              marker,
+              { scale: 0 },
+              { scale: 1, duration: 0.45, ease: 'back.out(2)', immediateRender: false },
+              0.12,
+            );
+          }
+        });
+
+        ScrollTrigger.addEventListener('refresh', measure);
+      }, rootRef);
+
+      measure();
+    };
+
+    build();
+
+    /**
+     * Refresco de medidas. NO se reconstruye el contexto: reconstruirlo a mitad
+     * del pin reinicia el tween (el track se quedaba congelado a medio recorrido).
+     * `invalidateOnRefresh` + los valores function-based (`y: () => -travel()`,
+     * `end: () => ...`) ya recalculan el recorrido en cada refresh, que es
+     * justo lo que hace `ScrollTrigger.refresh()` tras fuentes/imágenes/resize.
+     */
+    let refreshTimer = 0;
+    const onRefreshInit = (): void => {
+      window.clearTimeout(refreshTimer);
+      // `refreshInit` corre ANTES de recalcular: aquí el elemento aún no está
+      // clavado, así que las medidas son las naturales (sin el pin aplicado).
+      refreshTimer = window.setTimeout(() => measure(), 0);
+    };
+    ScrollTrigger.addEventListener('refreshInit', onRefreshInit);
 
     return () => {
+      window.clearTimeout(refreshTimer);
+      ScrollTrigger.removeEventListener('refreshInit', onRefreshInit);
       ScrollTrigger.removeEventListener('refresh', measure);
-      ctx.revert();
+      ctx?.revert();
+      ctx = null;
     };
     // `reduced` es estable para la vida de la página.
   }, [reduced]);
 
+  /**
+   * Ventana del recorrido. IMPORTANTE: `overflow-hidden` solo se aplica cuando el
+   * pin está realmente activo (lo añade GSAP al fijar el elemento). Si el pin no
+   * se crea —JS caído, plugin ausente, recorrido insuficiente— el contenedor NO
+   * recorta nada y la lista completa de hitos queda visible.
+   */
   const pinViewportClass = reduced
     ? 'relative mt-10 md:mt-14'
-    : 'relative mt-10 md:mt-14 h-[100svh] overflow-hidden';
+    : 'relative mt-10 md:mt-14 h-[100svh]';
 
   return (
     <section

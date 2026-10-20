@@ -1,11 +1,13 @@
 import { Suspense, lazy, useEffect, useRef, useState, type ReactElement } from 'react';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { NAV_LINKS } from './data/content';
 import { formatLastUpdate, getBezzecchi, useLiveData } from './data/api';
 import { initSmoothScroll, scrollToSection } from './lib/scroll';
+import { refreshScrollTriggers } from './lib/gsapSetup';
 import Preloader from './components/Preloader';
 import MagneticButton from './components/MagneticButton';
 import ScrollProgress from './components/ScrollProgress';
+import SectionBoundary from './components/SectionBoundary';
+import SoundToggle from './components/SoundToggle';
 
 /* --------------------------------------------------------------------------
  * Shell de la landing.
@@ -218,19 +220,25 @@ export default function App() {
     const destroy = initSmoothScroll();
     let resizeTimer = 0;
 
-    const onFontsReady = () => ScrollTrigger.refresh();
+    // Las secciones son lazy: cuando su chunk monta, el layout cambia. Estos
+    // refrescos (fuentes, preloader, imágenes y resize) son los cuatro momentos
+    // en que las medidas de ScrollTrigger pueden quedar obsoletas.
+    const onFontsReady = () => refreshScrollTriggers();
     if (typeof document !== 'undefined' && 'fonts' in document) {
       void document.fonts.ready.then(onFontsReady);
     }
+    const onPreloaderDone = () => refreshScrollTriggers();
+    window.addEventListener('preloader:done', onPreloaderDone);
     const onResize = () => {
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => ScrollTrigger.refresh(), 200);
+      resizeTimer = window.setTimeout(() => refreshScrollTriggers(), 200);
     };
     window.addEventListener('resize', onResize);
 
     return () => {
       window.clearTimeout(resizeTimer);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('preloader:done', onPreloaderDone);
       destroy();
     };
   }, []);
@@ -248,37 +256,50 @@ export default function App() {
       <ScrollProgress />
       <Navbar />
       <Preloader />
+      <SoundToggle />
 
       <main id="main">
         {/* 1 · HERO 3D (carga diferida) */}
-        <Suspense fallback={<HeroFallback />}>
-          <Hero3D />
-        </Suspense>
+        <SectionBoundary name="Portada">
+          <Suspense fallback={<HeroFallback />}>
+            <Hero3D />
+          </Suspense>
+        </SectionBoundary>
 
         {/* 2 · MARCADOR EN VIVO (carga diferida) */}
-        <Suspense fallback={<SectionFallback height="h-96" />}>
-          <LiveScoreboard />
-        </Suspense>
+        <SectionBoundary name="Marcador en vivo">
+          <Suspense fallback={<SectionFallback height="h-96" />}>
+            <LiveScoreboard />
+          </Suspense>
+        </SectionBoundary>
 
         {/* 3 · TRAYECTORIA */}
-        <Suspense fallback={<SectionFallback />}>
-          <Timeline />
-        </Suspense>
+        <SectionBoundary name="Trayectoria">
+          <Suspense fallback={<SectionFallback />}>
+            <Timeline />
+          </Suspense>
+        </SectionBoundary>
 
         {/* 4 · ESTADÍSTICAS DE CARRERA (carga diferida: Recharts fuera del bundle principal) */}
-        <Suspense fallback={<SectionFallback height="h-[36rem]" />}>
-          <CareerStats />
-        </Suspense>
+        <SectionBoundary name="Estadísticas">
+          <Suspense fallback={<SectionFallback height="h-[36rem]" />}>
+            <CareerStats />
+          </Suspense>
+        </SectionBoundary>
 
         {/* 5 · CALENDARIO 2026 */}
-        <Suspense fallback={<SectionFallback height="h-[32rem]" />}>
-          <Calendar />
-        </Suspense>
+        <SectionBoundary name="Calendario">
+          <Suspense fallback={<SectionFallback height="h-[32rem]" />}>
+            <Calendar />
+          </Suspense>
+        </SectionBoundary>
 
         {/* 6 · GALERÍA */}
-        <Suspense fallback={<SectionFallback />}>
-          <Gallery />
-        </Suspense>
+        <SectionBoundary name="Galería">
+          <Suspense fallback={<SectionFallback />}>
+            <Gallery />
+          </Suspense>
+        </SectionBoundary>
       </main>
 
       <Suspense

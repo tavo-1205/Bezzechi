@@ -1,6 +1,6 @@
 import Lenis from 'lenis';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ensureScrollTrigger, prefersReducedMotion } from './gsapSetup';
 
 /**
  * Scroll suave (Lenis) + integración con GSAP ScrollTrigger.
@@ -27,10 +27,33 @@ const UNLOCK_SAFETY_MS = 4500;
 export function initSmoothScroll(): () => void {
   if (typeof window === 'undefined') return () => undefined;
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced || lenis) return () => undefined;
+  // El plugin se registra SIEMPRE (aunque haya movimiento reducido), porque otras
+  // secciones usan ScrollTrigger sin Lenis. `ensureScrollTrigger` es idempotente.
+  const ScrollTrigger = ensureScrollTrigger();
 
-  gsap.registerPlugin(ScrollTrigger);
+  const reduced = prefersReducedMotion();
+
+  /**
+   * Puente scroll → ScrollTrigger. Con Lenis el puente es su evento `scroll`;
+   * SIN Lenis (movimiento reducido) hay que escuchar el scroll nativo, porque si
+   * no, ScrollTrigger NUNCA se entera de que la página se ha desplazado: los
+   * pins no se activan, los `scrub` no avanzan y una sección con pin queda con
+   * su hueco reservado y sin contenido (el bug de la trayectoria en blanco).
+   * `passive: true` para no bloquear el hilo de scroll.
+   */
+  const onNativeScroll = (): void => ScrollTrigger.update();
+  if (reduced || !lenis) {
+    window.addEventListener('scroll', onNativeScroll, { passive: true });
+    // Las alturas pueden cambiar tras cargar fuentes/imágenes: se refresca.
+    const onNativeResize = (): void => ScrollTrigger.refresh();
+    window.addEventListener('resize', onNativeResize);
+    return () => {
+      window.removeEventListener('scroll', onNativeScroll);
+      window.removeEventListener('resize', onNativeResize);
+    };
+  }
+
+  if (lenis) return () => undefined;
 
   const instance = new Lenis({
     duration: 1.05,
@@ -103,9 +126,7 @@ export function scrollToSection(id: string): void {
     return;
   }
   // Sin Lenis (p. ej. movimiento reducido): nunca animar si el usuario lo pide.
-  const reduced =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = prefersReducedMotion();
   target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
 }
 

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './lib/motion'; // override ?motion=full (debe ir antes que App)
+import './lib/gsapSetup'; // registra ScrollTrigger SIEMPRE, antes de montar
 import App from './App';
 import './index.css';
 
