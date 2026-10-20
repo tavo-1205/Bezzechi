@@ -115,3 +115,58 @@ Registro de decisiones del Director. Las reglas de colaboración están en
   `prefers-reduced-motion`; el override es explícito, documentado y reversible.
 - Riesgo aceptado y decidido por el Director: revisión inmediata de typecheck/build y
   de los estados con y sin override.
+
+## 2026-10-19 · Fix: la trayectoria (Timeline) se veía en blanco en producción
+
+- **Síntoma**: con `prefers-reduced-motion` (el default de este equipo) la sección
+  `#trayectoria` quedaba **en blanco**: 7 hitos en `opacity: 0` dentro de un
+  contenedor `h-[100svh] overflow-hidden` que recortaba un `track` de 3041 px a 700 px.
+- **Causa raíz** (3 fallos encadenados, todos reales):
+  1. `gsap.registerPlugin(ScrollTrigger)` vivía **solo** dentro de
+     `initSmoothScroll()` y del `useEffect` de `Timeline`, y **ambos salían antes**
+     cuando había movimiento reducido → el plugin **nunca se registraba**.
+  2. `instance.on('scroll', ScrollTrigger.update)` (dentro de la rama de Lenis) era
+     el **único puente** scroll nativo → ScrollTrigger: sin Lenis, el pin no se
+     activaba nunca.
+  3. El estado inicial del contenido dependía de animaciones (`gsap.from`) que, sin
+     pin, se quedaban aplicadas: **el fallo ocultaba el contenido** en vez de mostrarlo.
+- **Decisión de diseño**: **el contenido es visible por defecto**. Ninguna sección
+  puede depender de que el motor de animación funcione para ser legible.
+- **Cambios**:
+  - `src/lib/gsapSetup.ts` (nuevo): registra ScrollTrigger **en el arranque** del
+    bundle (`main.tsx`), idempotente; expone `prefersReducedMotion()` y
+    `refreshScrollTriggers()`.
+  - `src/lib/scroll.ts`: el plugin se registra siempre; **sin Lenis** se añade el
+    puente `window.addEventListener('scroll', ScrollTrigger.update, { passive: true })`
+    + `resize` → `refresh()`.
+  - `src/components/Timeline.tsx`: `overflow-hidden` **solo** si el pin existe de
+    verdad; entradas con `fromTo` + `immediateRender: false`; `gsap.context()` +
+    `ctx.revert()`; sin reconstruir el contexto a mitad del pin (lo congelaba);
+    `ScrollTrigger.refresh()` tras fuentes, `preloader:done` y resize.
+  - `src/components/SectionBoundary.tsx` (nuevo): error boundary por sección; si una
+    falla, muestra un aviso simple y el resto de la página sigue viva.
+- **Verificado en el build de producción** (4173): 7/7 hitos visibles, 0 en
+  `opacity: 0`, `overflow: visible`, `pin-spacer` presente en `?motion=full` con el
+  elemento en `position: fixed` durante el recorrido; 0 errores de consola.
+
+## 2026-10-19 · Sonido de motor MotoGP al apagarse el semáforo
+
+- **Contexto**: los navegadores bloquean el audio hasta un gesto del usuario.
+- **Decisión**: el preloader **no arranca solo**; muestra un botón **«ENTRAR»**
+  cuyo clic ejecuta la secuencia del semáforo y **crea el `AudioContext` dentro del
+  propio manejador** (política de autoplay). Se gestiona `suspended` con `resume()`.
+- **Sonido** (`src/lib/engineSound.ts`, Web Audio puro, **sin archivos externos**):
+  3 osciladores (`sawtooth` + `sawtooth` desafinado +7 cents + `square` una octava
+  arriba) con rampa de régimen 80 Hz → 600 Hz; ruido blanco por `bandpass` (rugido);
+  `lowpass` con rampa de corte (700 → 3200 → 600 Hz); envolvente de volumen con
+  ataque, meseta y caída larga. Duración 2,6 s, **ganancia máxima 0,4**.
+- **Controles**: botón de silencio en el preloader **y** control flotante
+  persistente (`SoundToggle`), ambos sobre `localStorage['bz72:engine-muted']`
+  (try/catch) y sincronizados por el evento `engine:muted-change`.
+- **Reglas**: no suena si el usuario silenció, ni con `prefers-reduced-motion`; si
+  se recarga o se entra sin pulsar ENTRAR, la página funciona **sin sonido**.
+- **Verificado en el build de producción**: AudioContext **no** se crea hasta el
+  clic; al apagarse las 5 luces se crean 3 osciladores + 1 fuente de ruido y
+  `resume()` se llama cuando el contexto nace `suspended`; con silencio persistido
+  el contexto **no se crea** (0); `aria-pressed` y `localStorage` se actualizan;
+  0 errores de consola.

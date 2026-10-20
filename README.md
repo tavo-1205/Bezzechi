@@ -69,13 +69,19 @@ npm run snapshot   # regenera src/data/snapshot.json desde la API real
    ├─ App.tsx                  # shell: preloader, barra de progreso, cursor, nav, Lenis, secciones
    ├─ index.css                # tema Tailwind 4 (paleta Aprilia, tokens, clases base, reduced-motion)
    ├─ styles/extras.css        # capas y efectos del rediseño (prefijo .x-)
-   ├─ lib/scroll.ts            # Lenis + GSAP ScrollTrigger, scrollToSection, stopScroll
+   ├─ lib/
+   │  ├─ scroll.ts            # Lenis + GSAP ScrollTrigger, scrollToSection, stopScroll
+   │  ├─ gsapSetup.ts         # registro único de ScrollTrigger + prefers-reduced-motion
+   │  ├─ motion.ts            # override ?motion=full / ?motion=system
+   │  └─ engineSound.ts       # arranque de motor MotoGP con Web Audio (sin archivos)
    ├─ data/
    │  ├─ api.ts                # capa de datos del cliente (fetch /api → localStorage → snapshot)
    │  ├─ content.ts            # copy estático: timeline, stats de carrera, galería, enlaces
    │  └─ snapshot.json         # fallback offline con datos reales de 2026
    └─ components/
-      ├─ Preloader.tsx         # preloader de semáforo (emite preloader:done)
+      ├─ Preloader.tsx         # semáforo + botón ENTRAR (arranca semáforo y sonido)
+      ├─ SoundToggle.tsx       # control de sonido flotante y persistente
+      ├─ SectionBoundary.tsx   # error boundary por sección (nunca deja un hueco)
       ├─ ScrollProgress.tsx    # barra de progreso tipo circuito + marcador
       ├─ MagneticButton.tsx    # botones y CTA magnéticos (solo puntero fino)
       ├─ Hero3D.tsx            # hero a pantalla completa + escena R3F
@@ -95,9 +101,13 @@ npm run snapshot   # regenera src/data/snapshot.json desde la API real
 
 El rediseño convierte la página en un recorrido continuo, de la parrilla a la meta:
 
-- **Preloader de semáforo**: al cargar se encienden las luces; al apagarse emite
-  `preloader:done` —el evento del que dependen Lenis y la entrada del hero— y se retira
-  del DOM (sin trampa de foco permanente).
+- **Preloader de semáforo**: se muestra con un botón **«ENTRAR»** y no arranca solo.
+  Al pulsarlo se encienden las luces y, justo al apagarse (salida), **suena el arranque
+  del motor** (Web Audio generado en el cliente, 2,6 s) y se emite `preloader:done` —el
+  evento del que dependen Lenis y la entrada del hero—; después se retira del DOM (sin
+  trampa de foco permanente). El clic es el gesto que desbloquea el audio. Si recargas
+  o entras sin pulsar, la página funciona sin sonido, y un control de silencio
+  persistente (junto al semáforo y flotante durante la navegación) recuerda la preferencia.
 - **Hero 3D reactivo**: moto procedural con la librea #72, partículas de velocidad y
   halo aditivo. La cámara responde al puntero y al progreso de scroll, y la moto entra
   al recibir `preloader:done`. Un tier `compact` (768–1100 px) reencuadra la escena
@@ -157,6 +167,10 @@ hace **un único polling compartido** (60 s en calma, 15 s en fin de semana).
 - Auditoría Lighthouse: **accesibilidad 100 · buenas prácticas 100 · SEO 100** (0 fallos).
 - Verificado en runtime: 0 errores de consola recorriendo las 6 secciones y 0 px de
   desbordamiento horizontal (capturas de revisión en `%LOCALAPPDATA%\Temp\opencode\capturas\`).
+- **Contenido visible por defecto**: las secciones no dependen de que el motor de
+  animación funcione. ScrollTrigger se registra en el arranque (`lib/gsapSetup.ts`) y
+  existe un puente de scroll aunque Lenis no se inicialice; cada sección va dentro de un
+  `SectionBoundary` para que ningún fallo deje un hueco en blanco.
 - Aviso de build conocido: el chunk diferido `three` (~970 kB, gzip ~262 kB) supera el
   umbral de 900 kB; se carga con `lazy` solo para el hero y no bloquea el resto.
 - **Ver animadas las animaciones**: si el sistema tiene desactivados los efectos de
