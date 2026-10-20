@@ -7,10 +7,17 @@
  *   2) window.dispatchEvent(new CustomEvent('preloader:done'))
  *   3) overlay con fade-out y desmontaje del DOM (nunca bloquea el foco).
  *
+ * GESTIÓN DE AUDIO: los navegadores bloquean el audio hasta que el usuario
+ * interactúa con la página. Por eso la secuencia NO arranca sola: se muestra un
+ * botón «ENTRAR» y, al pulsarlo, se ejecuta la secuencia del semáforo y se
+ * reproduce el arranque del motor (`playEngineRev`) justo cuando las 5 luces se
+ * apagan. Ese clic es el gesto que desbloquea el AudioContext. Si el usuario
+ * entra sin pulsar (recarga, movimiento reducido), la página funciona sin sonido.
+ *
  * Garantías:
  *   - Se dispara exactamente 1 vez (bandera `emitted`).
  *   - Timeout de seguridad a 4 s: la página nunca queda bloqueada.
- *   - `prefers-reduced-motion`: sin secuencia; atributo + evento en el
+ *   - `prefers-reduced-motion`: sin secuencia ni sonido; atributo + evento en el
  *     primer render y overlay retirado al instante.
  *
  * NOTA: el Director lo monta en App.tsx (Ronda 2). Este componente es
@@ -18,18 +25,19 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { isEngineMuted, playEngineRev, setEngineMuted } from '../lib/engineSound';
 
-const TOTAL_MS = 2200; // duración aproximada de la secuencia del semáforo
-const SAFETY_MS = 4000; // timeout de seguridad: nunca bloquea la página
+const SAFETY_MS = 6000; // timeout de seguridad: nunca bloquea la página
 
 const STAGE_AMBER_MS = 700; // se encienden los dos ámbar (el rojo permanece)
 const STAGE_GREEN_MS = 1400; // se enciende el verde
-const EMIT_DONE_MS = 1600; // se emite `preloader:done` en verde
+const EMIT_DONE_MS = 1900; // se emite `preloader:done` en verde (salida)
 const FADE_MS = 700; // duración del fade-out antes de retirarse del DOM
 
-type Stage = 'red' | 'amber' | 'green';
+type Stage = 'idle' | 'red' | 'amber' | 'green';
 
 const STAGE_LABEL: Record<Stage, string> = {
+  idle: 'En espera de salida',
   red: 'Rojo',
   amber: 'Rojo y ámbar',
   green: 'Verde',
@@ -39,9 +47,10 @@ export default function Preloader(): ReactElement | null {
   const reduced =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const [stage, setStage] = useState<Stage>('red');
+  const [stage, setStage] = useState<Stage>(reduced ? 'green' : 'idle');
   const [fading, setFading] = useState(false);
   const [mounted, setMounted] = useState(true);
+  const [muted, setMuted] = useState<boolean>(() => isEngineMuted());
 
   const emitted = useRef(false);
   const timers = useRef<number[]>([]);
@@ -65,26 +74,55 @@ export default function Preloader(): ReactElement | null {
     timers.current.push(window.setTimeout(() => setMounted(false), FADE_MS));
   }, []);
 
-  const runSequence = (): void => {
+  /**
+   * Arranca la secuencia del semáforo y, en el instante en que se emite la
+   * salida (las 5 luces se apagan), reproduce el arranque del motor.
+   */
+  const startSequence = (withSound: boolean): void => {
     clearTimers();
     setStage('red');
     timers.current.push(window.setTimeout(() => setStage('amber'), STAGE_AMBER_MS));
     timers.current.push(window.setTimeout(() => setStage('green'), STAGE_GREEN_MS));
-    timers.current.push(window.setTimeout(emitDone, EMIT_DONE_MS));
-    timers.current.push(window.setTimeout(clearTimers, TOTAL_MS));
+    timers.current.push(
+      window.setTimeout(() => {
+        // Las 5 luces se apagan aquí (salida): arranca el motor.
+        if (withSound && !isEngineMuted()) playEngineRev();
+        emitDone();
+      }, EMIT_DONE_MS),
+    );
   };
+
+  /** Clic en «ENTRAR»: gesto del usuario → desbloquea el audio y arranca todo. */
+  const handleEnter = (): void => {
+    startSequence(true);
+  };
+
+  const toggleMute = (): void => {
+    setMuted((prev) => {
+      const next = !prev;
+      setEngineMuted(next);
+      return next;
+    });
+  };
+
+  // El botón flotante (SoundToggle) comparte la preferencia: se mantiene en síncrono.
+  useEffect(() => {
+    const sync = (): void => setMuted(isEngineMuted());
+    window.addEventListener('engine:muted-change', sync);
+    return () => window.removeEventListener('engine:muted-change', sync);
+  }, []);
 
   useEffect(() => {
     if (reduced) {
-      // Sin secuencia: atributo + evento en el primer render, overlay al instante.
+      // Sin secuencia ni sonido: atributo + evento en el primer render.
       document.documentElement.dataset.preloader = 'done';
       window.dispatchEvent(new CustomEvent('preloader:done'));
       setMounted(false);
       return undefined;
     }
 
-    runSequence();
-    // Timeout de seguridad: aunque falle la secuencia, la página se desbloquea.
+    // Timeout de seguridad: aunque el usuario no pulse ENTRAR o falle la
+    // secuencia, la página se desbloquea (sin sonido, no hubo gesto).
     timers.current.push(
       window.setTimeout(() => {
         if (!emitted.current) emitDone();
@@ -132,6 +170,27 @@ export default function Preloader(): ReactElement | null {
             data-state={greenLit ? 'on' : 'off'}
           />
         </div>
+
+        {stage === 'idle' ? (
+          <div className="flex flex-col items-center gap-3">
+            <button type="button" onClick={handleEnter} className="x-enter-btn" autoFocus>
+              <span className="x-enter-btn__text">Entrar</span>
+            </button>
+            <p className="max-w-xs text-xs leading-relaxed text-ash">
+              Pulsa para arrancar. El motor sonará al apagarse el semáforo.
+            </p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-pressed={muted}
+            className="x-mute-btn"
+            aria-label={muted ? 'Activar sonido del motor' : 'Silenciar sonido del motor'}
+          >
+            {muted ? '🔇 Sonido apagado' : '🔊 Sonido activado'}
+          </button>
+        )}
 
         <span role="status" aria-live="polite" className="sr-only">
           Semáforo: {STAGE_LABEL[stage]}

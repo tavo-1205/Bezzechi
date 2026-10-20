@@ -100,6 +100,103 @@
     box-shadow: 0 0 32px var(--color-signal-green), inset 0 0 16px rgba(255, 255, 255, 0.5);
   }
 
+  /* Botón «ENTRAR»: la secuencia del semáforo y el sonido del motor arrancan
+     SOLO con este gesto del usuario (política de autoplay de los navegadores). */
+  .x-enter-btn {
+    position: relative;
+    padding: 0.9rem 2.6rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    color: var(--color-accent-300);
+    font-family: var(--font-cond);
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      background-color 0.25s ease,
+      box-shadow 0.25s ease,
+      transform 0.25s ease;
+  }
+
+  .x-enter-btn:hover,
+  .x-enter-btn:focus-visible {
+    background-color: color-mix(in srgb, var(--color-accent) 26%, transparent);
+    box-shadow: 0 0 34px -6px var(--color-accent);
+    transform: translateY(-1px);
+  }
+
+  .x-enter-btn:focus-visible {
+    outline: 2px solid var(--color-accent-300);
+    outline-offset: 3px;
+  }
+
+  /* Botón de silencio: discreto, persistente y con estado legible (`aria-pressed`). */
+  .x-mute-btn {
+    padding: 0.35rem 0.9rem;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--color-ash);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .x-mute-btn:hover,
+  .x-mute-btn:focus-visible {
+    color: var(--color-mist);
+    border-color: var(--color-mist);
+  }
+
+  .x-mute-btn[aria-pressed="true"] {
+    color: var(--color-signal-amber);
+    border-color: color-mix(in srgb, var(--color-signal-amber) 60%, transparent);
+  }
+
+  /* Control de sonido flotante y persistente (esquina inferior derecha). */
+  .x-sound-toggle {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-line);
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--color-ink) 82%, transparent);
+    backdrop-filter: blur(8px);
+    color: var(--color-mist);
+    font-size: 1.05rem;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .x-sound-toggle:hover,
+  .x-sound-toggle:focus-visible {
+    border-color: var(--color-accent);
+    transform: scale(1.06);
+  }
+
+  .x-sound-toggle:focus-visible {
+    outline: 2px solid var(--color-accent-300);
+    outline-offset: 2px;
+  }
+
+  .x-sound-toggle[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--color-signal-amber) 60%, transparent);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html:not([data-motion="full"]) .x-preloader,
     html:not([data-motion="full"]) .x-light {
@@ -108,6 +205,10 @@
     }
     html:not([data-motion="full"]) .x-preloader.fading {
       opacity: 0 !important;
+    }
+    html:not([data-motion="full"]) .x-enter-btn {
+      transition: none !important;
+      transform: none !important;
     }
   }
 
