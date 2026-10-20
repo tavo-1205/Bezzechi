@@ -54,7 +54,8 @@ npm run snapshot   # regenera src/data/snapshot.json desde la API real
 ├─ vite.config.ts              # plugin motogp-live-api (middleware /api en dev/preview)
 ├─ public/
 │  ├─ robots.txt               # permisos a crawlers (si no, Vite/SPA sirve HTML)
-│  └─ favicon.svg              # favicon "72" en SVG
+│  ├─ favicon.svg              # favicon "72" en SVG
+│  └─ audio/                   # grabación real del motor (moto-rev.mp3 + .ogg, CC BY-SA 4.0)
 ├─ server/
 │  ├─ api.mjs                  # proxy MotoGP: caché 30–60 s, dedupe, fallback stale, CORS
 │  ├─ api.d.mts                # tipos del módulo JS para TS estricto
@@ -73,7 +74,7 @@ npm run snapshot   # regenera src/data/snapshot.json desde la API real
    │  ├─ scroll.ts            # Lenis + GSAP ScrollTrigger, scrollToSection, stopScroll
    │  ├─ gsapSetup.ts         # registro único de ScrollTrigger + prefers-reduced-motion
    │  ├─ motion.ts            # override ?motion=full / ?motion=system
-   │  └─ engineSound.ts       # arranque de motor MotoGP con Web Audio (sin archivos)
+   │  └─ engineSound.ts       # sonido de motor: grabación real + síntesis de respaldo
    ├─ data/
    │  ├─ api.ts                # capa de datos del cliente (fetch /api → localStorage → snapshot)
    │  ├─ content.ts            # copy estático: timeline, stats de carrera, galería, enlaces
@@ -102,12 +103,16 @@ npm run snapshot   # regenera src/data/snapshot.json desde la API real
 El rediseño convierte la página en un recorrido continuo, de la parrilla a la meta:
 
 - **Preloader de semáforo**: se muestra con un botón **«ENTRAR»** y no arranca solo.
-  Al pulsarlo se encienden las luces y, justo al apagarse (salida), **suena el arranque
-  del motor** (Web Audio generado en el cliente, 12 s) y se emite `preloader:done` —el
-  evento del que dependen Lenis y la entrada del hero—; después se retira del DOM (sin
-  trampa de foco permanente). El clic es el gesto que desbloquea el audio. Si recargas
-  o entras sin pulsar, la página funciona sin sonido, y un control de silencio
-  persistente (junto al semáforo y flotante durante la navegación) recuerda la preferencia.
+  Al pulsarlo se encienden las luces y, justo al apagarse (salida), **suena el corte de
+  motor de MotoGP** (12 s) y se emite `preloader:done` —el evento del que dependen Lenis
+  y la entrada del hero—; después se retira del DOM (sin trampa de foco permanente). El
+  sonido es una **grabación real de motor** (`public/audio/moto-rev.mp3`, con
+  `moto-rev.ogg` de respaldo; CC BY-SA 4.0 vía Wikimedia Commons, ver `docs/DECISIONS.md`)
+  que se **precarga mientras se mira el semáforo**; si el archivo falta, se cae a una
+  síntesis procedural de respaldo. El clic es el gesto que desbloquea el audio. Si
+  recargas o entras sin pulsar, la página funciona sin sonido, y un control de silencio
+  persistente (junto al semáforo y flotante durante la navegación) recuerda la
+  preferencia. Una discreta marca de agua del autor firma la pantalla del semáforo.
 - **Hero 3D reactivo**: moto procedural con la librea #72, partículas de velocidad y
   halo aditivo. La cámara responde al puntero y al progreso de scroll, y la moto entra
   al recibir `preloader:done`. Un tier `compact` (768–1100 px) reencuadra la escena

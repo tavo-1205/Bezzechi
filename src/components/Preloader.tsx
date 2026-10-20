@@ -25,7 +25,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
-import { isEngineMuted, playEngineRev, setEngineMuted } from '../lib/engineSound';
+import { isEngineMuted, playEngineRev, preloadEngineAudio, setEngineMuted } from '../lib/engineSound';
 
 const SAFETY_MS = 6000; // timeout de seguridad: nunca bloquea la página
 
@@ -104,6 +104,15 @@ export default function Preloader(): ReactElement | null {
       return next;
     });
   };
+
+  // Precarga la grabación real mientras el usuario mira el semáforo: así, al
+  // pulsar ENTRAR, suena la moto de verdad en lugar de la síntesis de respaldo.
+  // Solo descarga y decodifica; no reproduce nada ni depende de un gesto.
+  useEffect(() => {
+    if (reduced || isEngineMuted()) return undefined;
+    preloadEngineAudio();
+    return undefined;
+  }, [reduced]);
 
   // El botón flotante (SoundToggle) comparte la preferencia: se mantiene en síncrono.
   useEffect(() => {
@@ -196,6 +205,13 @@ export default function Preloader(): ReactElement | null {
           Semáforo: {STAGE_LABEL[stage]}
         </span>
       </div>
+
+      {/* Marca de agua: firma discreta en la esquina, integrada en la estética
+          (condensada, mayúsculas, muy espaciada, opacidad baja). Decorativa. */}
+      <p className="x-preloader__mark" aria-hidden="true">
+        <span className="x-preloader__mark-tick" />
+        Hecho por Gustavo Blanchar
+      </p>
     </div>
   );
 }

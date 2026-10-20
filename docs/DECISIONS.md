@@ -149,6 +149,25 @@ Registro de decisiones del Director. Las reglas de colaboración están en
   `opacity: 0`, `overflow: visible`, `pin-spacer` presente en `?motion=full` con el
   elemento en `position: fixed` durante el recorrido; 0 errores de consola.
 
+## 2026-10-20 · Fix: el cursor del ratón no se veía en la pantalla del semáforo
+
+- **Bug reportado por el Director**: en la pantalla del semáforo **no se ve el
+  cursor**.
+- **Causa raíz**: `CustomCursor` añadía `html.has-cursor` **al montar**, y esa clase
+  aplica `cursor: none !important` a toda la página. Pero el cursor personalizado
+  (`.cursor-dot`/`.cursor-ring`) nace con `opacity: 0` y solo se coloca y muestra en
+  el primer `pointermove`/frame de `requestAnimationFrame`. Resultado: entre el
+  montaje y el primer movimiento del ratón —justo lo que ocurre en el semáforo, donde
+  el usuario aún no ha movido el ratón— **no había ningún cursor visible** (ni el
+  nativo ni el personalizado).
+- **Solución**: `has-cursor` **no se añade hasta el primer `pointermove`**; en ese
+  instante se coloca el personalizado en la posición real **antes** de ocultar el
+  nativo, de forma que nunca existe un frame sin cursor. El punto y el anillo se
+  actualizan en una función `place()` compartida.
+- **Verificado en producción**: antes de mover → `has-cursor` ausente, cursor nativo
+  visible (`auto`, y `pointer` sobre el botón ENTRAR); tras mover → `has-cursor`
+  presente, personalizado colocado en la posición exacta del puntero y nativo oculto.
+
 ## 2026-10-19 · Sonido de motor MotoGP al apagarse el semáforo
 
 - **Contexto**: los navegadores bloquean el audio hasta un gesto del usuario.
@@ -196,3 +215,44 @@ Registro de decisiones del Director. Las reglas de colaboración están en
   `WaveShaper`, 14 ganancias; AudioContext creado solo al pulsar y `resume()` en
   contexto `suspended`; el sonido sigue activo con el preloader ya fuera del DOM;
   0 errores de consola.
+
+### 2026-10-20 · El sonido pasa a ser una grabación real (deja de ser zumbido)
+
+- **Feedback del Director**: «eso no suena como una moto». Diagnóstico honesto: la
+  síntesis por osciladores produce un **zumbido electrónico**, no la combustión
+  (impulsos de centenares de explosiones/s + clatter mecánico + turbulencia de
+  escape). Se decide usar **audio real** en vez de seguir ajustando la síntesis.
+- **Fuente**: *«Yamaha RX-100 accelerates to top speed»*, grabación propia subida a
+  **Wikimedia Commons** con licencia **CC BY-SA 4.0**. Se elige el tramo
+  **0–12 s** (ralentí → subida por las 4 marchas → zona alta), que reproduce el arco
+  «corte» que queremos. Verificado por análisis espectral: la energía >2 kHz sube de
+  −29,8 dB (ralentí) a −18 dB (pico) → es régimen real, no volumen.
+- **Procesado**: recorte a 12 s, `loudnorm I=-15 TP=-1.5`, `afade` in 0,08 s / out
+  0,9 s, mono 44,1 kHz. Salida doble: **`public/audio/moto-rev.mp3`** (193 kB,
+  primario por compatibilidad) y **`public/audio/moto-rev.ogg`** (109 kB, respaldo).
+- **Cadena en el código** (`engineSound.ts`): `playEngineRev` intenta la grabación
+  (MP3 → OGG) y **cae a la síntesis procedural** si no existe, no carga o el
+  navegador no decodifica. `preloadEngineAudio()` se llama al **montar el preloader**:
+  descarga y decodifica mientras el usuario mira el semáforo (no reproduce nada ni
+  requiere gesto), de modo que al pulsar ENTRAR ya suena la grabación al instante.
+- **Verificado en producción**: precarga con `fetch('/audio/moto-rev.mp3')`; al
+  pulsar ENTRAR **0 osciladores** creados y **1 `AudioBufferSource`** de 12 s → suena
+  la grabación, no la síntesis. Con el archivo ausente (renombrado): **7 osciladores**
+  → el respaldo sintético sigue funcionando. 0 errores de consola.
+- **Atribución**: la licencia CC BY-SA y la fuente quedan documentadas aquí; si el
+  proyecto se distribuyera, el crédito a Wikimedia Commons debe conservarse.
+
+### 2026-10-20 · Marca de agua del autor en la pantalla del semáforo
+
+- **Petición del Director**: añadir «Hecho por Gustavo Blanchar» en la parte del
+  semáforo **sin perder la estética**.
+- **Decisión**: firma discreta abajo-izquierda (`.x-preloader__mark`) usando el
+  lenguaje tipográfico del sitio — `--font-cond` (Barlow Condensed), mayúsculas,
+  `letter-spacing` amplio (0,32em), `--color-ash` al 78 %, con un pequeño trazo de
+  acento naranja (guiño al dorsal). No roba protagonismo al semáforo.
+- **Detalles**: `aria-hidden="true"` (es branding decorativo, no contenido) y
+  `pointer-events: none`; se retira del DOM junto con el preloader, así que no queda
+  ningún overlay sobre la página. En modo `prefers-reduced-motion` el preloader no se
+  monta, por lo que la marca tampoco aparece (correcto).
+- **Verificado en producción**: texto exacto, sin solape con `.x-traffic-light`,
+  `pointer-events: none`, `aria-hidden`, y ausencia total tras el desvanecido.

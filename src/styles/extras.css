@@ -36,6 +36,39 @@
     visibility: hidden;
   }
 
+  /* Marca de agua del autor: firma discreta abajo-izquierda. Usa el lenguaje
+     tipográfico del sitio (condensada, mayúsculas, letter-spacing amplio,
+     acento naranja) para integrarse sin robar protagonismo al semáforo. */
+  .x-preloader__mark {
+    position: absolute;
+    left: clamp(1rem, 3vw, 2.25rem);
+    bottom: clamp(1rem, 3vw, 2.25rem);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-cond);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-ash) 78%, transparent);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Pequeña marca de acento que ancla la firma (guiño al dorsal de carreras). */
+  .x-preloader__mark-tick {
+    width: 1.4rem;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-accent) 55%,
+      var(--color-accent-300)
+    );
+    opacity: 0.85;
+  }
+
   .x-traffic-light {
     display: grid;
     grid-template-areas:

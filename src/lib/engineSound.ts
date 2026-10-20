@@ -50,6 +50,20 @@ let audioCtx: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
 let shaperCurve: Float32Array<ArrayBuffer> | null = null;
 
+/** Grabación real de motor ya decodificada (si está disponible). */
+let engineBuffer: AudioBuffer | null = null;
+/** Evita lanzar varias peticiones simultáneas del archivo. */
+let loadingEngine = false;
+/** `true` si el archivo no existe/decodifica: no se vuelve a intentar. */
+let engineUnavailable = false;
+
+/**
+ * Fuentes de la grabación real, en orden de preferencia. El MP3 va primero por
+ * compatibilidad universal; el OGG queda como respaldo por si el navegador no
+ * soporta MP3 en `decodeAudioData`.
+ */
+const ENGINE_SOURCES = ['/audio/moto-rev.mp3', '/audio/moto-rev.ogg'] as const;
+
 /** ¿El usuario ha silenciado el motor? Nunca rompe si localStorage no está. */
 export function isEngineMuted(): boolean {
   try {
@@ -132,10 +146,17 @@ function getShaperCurve(): Float32Array<ArrayBuffer> {
 }
 
 /**
- * Reproduce un arranque y corte de motor de MotoGP (12 s).
+ * Reproduce el sonido del motor al apagarse el semáforo.
  *
- * @returns `true` si el sonido se ha lanzado, `false` si se ha omitido
- *          (silenciado, movimiento reducido o Web Audio no disponible).
+ * Estrategia en cascada:
+ *   1. **Grabación real** (`/audio/moto-rev.{mp3,ogg}`) descargada y decodificada
+ *      una sola vez (idealmente ya precargada con `preloadEngineAudio`). Es lo
+ *      que de verdad suena a moto.
+ *   2. Si el archivo no existe, no carga o el navegador no puede decodificarlo,
+ *      se cae a la **síntesis procedural** (`playSynthRev`), que siempre funciona.
+ *
+ * @returns `true` si el sonido se ha lanzado (o queda lanzándose), `false` si se
+ *          ha omitido (silenciado, movimiento reducido o Web Audio no disponible).
  */
 export function playEngineRev(): boolean {
   if (isEngineMuted() || reducedMotion()) return false;
@@ -146,6 +167,97 @@ export function playEngineRev(): boolean {
   // El contexto puede nacer o quedar `suspended` (política de autoplay).
   if (ctx.state === 'suspended') void ctx.resume();
 
+  // Si ya tenemos la grabación decodificada, se reproduce al instante.
+  if (engineBuffer) {
+    playBuffer(ctx, engineBuffer);
+    return true;
+  }
+
+  // Primera vez (y el precargado del preloader no llegó a tiempo): se pide el
+  // archivo. Mientras llega, la síntesis suena YA (así el usuario nunca oye
+  // silencio) y, cuando la grabación está lista, se recuerda para la próxima.
+  if (!engineBuffer) void loadEngineBuffer(ctx);
+
+  // Respaldo (o primera reproducción mientras carga la grabación).
+  playSynthRev(ctx);
+  return true;
+}
+
+/**
+ * Precarga la grabación real en segundo plano, sin reproducir nada.
+ *
+ * Se llama al montar el preloader (mientras el usuario mira el semáforo) para
+ * que, al pulsar ENTRAR, la grabación ya esté decodificada y suene al instante
+ * en lugar de arrancar con la síntesis. Es seguro llamarla varias veces: solo
+ * descarga una vez y no crea el `AudioContext` hasta que el usuario interactúa.
+ */
+export function preloadEngineAudio(): void {
+  const ctx = getContext();
+  if (!ctx) return;
+  void loadEngineBuffer(ctx);
+}
+
+/**
+ * Descarga y decodifica la grabación una sola vez (MP3 y, si falla, OGG).
+ * Si ninguna está disponible, marca el audio real como no disponible para no
+ * reintentar en cada reproducción.
+ */
+async function loadEngineBuffer(ctx: AudioContext): Promise<void> {
+  if (engineBuffer || loadingEngine || engineUnavailable) return;
+  loadingEngine = true;
+  try {
+    for (const url of ENGINE_SOURCES) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.arrayBuffer();
+        engineBuffer = await ctx.decodeAudioData(data);
+        return;
+      } catch {
+        // Se prueba la siguiente fuente (otro formato).
+      }
+    }
+    engineUnavailable = true; // ninguna fuente sirvió: no se reintenta
+  } finally {
+    loadingEngine = false;
+  }
+}
+
+/** Reproduce la grabación real con un pequeño realce y desvanecido final. */
+function playBuffer(ctx: AudioContext, buffer: AudioBuffer): void {
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  // Sin desplazamiento: el archivo ya viene recortado al tramo útil.
+  const gain = ctx.createGain();
+  const now = ctx.currentTime;
+  const dur = buffer.duration;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.9, now + 0.08);
+  gain.gain.setValueAtTime(0.9, now + Math.max(0.1, dur - 1.2));
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  source.connect(gain);
+  gain.connect(ctx.destination);
+  source.start(now);
+  source.stop(now + dur + 0.05);
+  window.setTimeout(
+    () => {
+      try {
+        gain.disconnect();
+      } catch {
+        /* ya desconectado */
+      }
+    },
+    Math.ceil((dur + 0.3) * 1000),
+  );
+}
+
+/**
+ * Síntesis procedural del arranque y corte de un motor (respaldo de 12 s).
+ * Se usa solo si la grabación real no está disponible.
+ *
+ * @returns `true` si el sonido se ha lanzado.
+ */
+function playSynthRev(ctx: AudioContext): boolean {
   const now = ctx.currentTime;
   const end = now + ENGINE_DURATION;
 
