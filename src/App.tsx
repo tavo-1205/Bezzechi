@@ -36,15 +36,34 @@ function CustomCursor() {
     if (!fine || reduced) return undefined;
 
     const html = document.documentElement;
-    html.classList.add('has-cursor');
 
     const pointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     const ring = { x: pointer.x, y: pointer.y };
     let frame = 0;
+    // La clase `has-cursor` (que oculta el cursor nativo) NO se añade hasta que
+    // el puntero se ha movido de verdad: si no, entre el montaje y el primer
+    // `pointermove` el cursor nativo estaría oculto y el personalizado aún en
+    // (0,0) con opacidad 0 → pantalla sin ningún cursor. Es el bug que se veía
+    // en el semáforo, donde el usuario aún no ha movido el ratón.
+    let activated = false;
+
+    const place = (): void => {
+      if (dotRef.current) dotRef.current.style.transform = `translate3d(${pointer.x}px, ${pointer.y}px, 0)`;
+      if (ringRef.current) ringRef.current.style.transform = `translate3d(${ring.x}px, ${ring.y}px, 0)`;
+    };
 
     const onMove = (event: PointerEvent) => {
       pointer.x = event.clientX;
       pointer.y = event.clientY;
+      if (!activated) {
+        activated = true;
+        // Colocar en la posición real ANTES de ocultar el nativo y mostrar el
+        // personalizado: nunca hay un frame sin cursor visible.
+        ring.x = pointer.x;
+        ring.y = pointer.y;
+        place();
+        html.classList.add('has-cursor');
+      }
       const target = event.target as HTMLElement | null;
       const hot = Boolean(target?.closest('a, button, [role="button"], [data-cursor="hot"]'));
       html.classList.toggle('cursor-hot', hot);
@@ -53,8 +72,7 @@ function CustomCursor() {
     const loop = () => {
       ring.x += (pointer.x - ring.x) * 0.18;
       ring.y += (pointer.y - ring.y) * 0.18;
-      if (dotRef.current) dotRef.current.style.transform = `translate3d(${pointer.x}px, ${pointer.y}px, 0)`;
-      if (ringRef.current) ringRef.current.style.transform = `translate3d(${ring.x}px, ${ring.y}px, 0)`;
+      place();
       frame = window.requestAnimationFrame(loop);
     };
 
