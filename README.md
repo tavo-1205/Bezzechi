@@ -103,7 +103,7 @@ El rediseño convierte la página en un recorrido continuo, de la parrilla a la 
 
 - **Preloader de semáforo**: se muestra con un botón **«ENTRAR»** y no arranca solo.
   Al pulsarlo se encienden las luces y, justo al apagarse (salida), **suena el arranque
-  del motor** (Web Audio generado en el cliente, 2,6 s) y se emite `preloader:done` —el
+  del motor** (Web Audio generado en el cliente, 12 s) y se emite `preloader:done` —el
   evento del que dependen Lenis y la entrada del hero—; después se retira del DOM (sin
   trampa de foco permanente). El clic es el gesto que desbloquea el audio. Si recargas
   o entras sin pulsar, la página funciona sin sonido, y un control de silencio

@@ -168,5 +168,31 @@ Registro de decisiones del Director. Las reglas de colaboración están en
 - **Verificado en el build de producción**: AudioContext **no** se crea hasta el
   clic; al apagarse las 5 luces se crean 3 osciladores + 1 fuente de ruido y
   `resume()` se llama cuando el contexto nace `suspended`; con silencio persistido
-  el contexto **no se crea** (0); `aria-pressed` y `localStorage` se actualizan;
+  el contexto **no** se crea (0); `aria-pressed` y `localStorage` se actualizan;
+  0 errores de consola.
+
+### 2026-10-20 · Sonido de motor más largo (12 s) y más realista
+
+- **Petición del Director**: el corte debe durar **mínimo 10 s** y parecerse lo más
+  posible a la moto real de Bezzecchi (Aprilia RS-GP, V4).
+- **Duración**: **12 s** (`ENGINE_DURATION`), articulados en 7 fases — arranque con
+  motor de arranque, encendido y ralentí con *lope*, primer golpe de gas,
+  aceleración a fondo con **3 cambios de marcha**, zona alta sostenida, corte con
+  **petardeo** y vuelta a ralentí con desvanecido.
+- **Cadena de síntesis nueva** (lo que le da el timbre de moto real):
+  - **6 parciales** (sierras en 0,5×, 1×, 1,004×, 2×, 4× + cuadrada en 3×) con
+    detune cruzado → armónicos ricos y batidos.
+  - **LFO de irregularidad V4** modulando la afinación (±14 → ±28 cents): el motor
+    «late» en vez de ser un drone perfecto.
+  - **Rugido de admisión** (`bandpass` que sigue al régimen) + **soplido de escape**
+    (`highpass`) como capas de ruido separadas.
+  - **Saturación `WaveShaper`** (tanh, `oversample 4x`): grano metálico del escape.
+  - **`lowpass` maestro** con rampa de 600 Hz a 5,6 kHz y cierre al cortar.
+- **Sigue sonando tras retirarse el preloader**: vive en `ctx.destination`, así que
+  acompaña al usuario mientras entra en la página (como una moto que se aleja).
+- **Verificado en el build de producción**: `maxStop = 12 s` exactos; 7 osciladores
+  (5 `sawtooth` + 1 `square` + 1 `sine`), 6 fuentes de ruido (admisión + soplido +
+  4 petardeos), 7 filtros (`lowpass`+`bandpass`+`highpass`+4×`bandpass`), 1
+  `WaveShaper`, 14 ganancias; AudioContext creado solo al pulsar y `resume()` en
+  contexto `suspended`; el sonido sigue activo con el preloader ya fuera del DOM;
   0 errores de consola.

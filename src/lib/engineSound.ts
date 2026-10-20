@@ -2,16 +2,35 @@
  * Sonido de motor MotoGP generado con Web Audio API — sin archivos externos
  * (cero peso de bundle, cero problemas de licencia).
  *
- * Diseño del sonido (2,6 s, arranque + aceleración que se desvanece):
- *   - 2 osciladores `sawtooth` (el segundo desafinado +7 cents) con rampa de
- *     frecuencia 80 Hz → 600 Hz: da el «cuerpo» armónico del motor.
- *   - 1 oscilador `square` una octava arriba y a bajo volumen: el filo metálico.
- *   - Ruido blanco por un `BiquadFilter` **bandpass** cuya frecuencia sube con el
- *     régimen y cuya Q baja: es el rugido de admisión/escape.
- *   - `BiquadFilter` **lowpass** con rampa de corte (700 Hz → 3200 Hz) que abre
- *     conforme sube el régimen, más una segunda rampa de cierre al final.
- *   - Envolvente de volumen: ataque rápido (arranque), meseta, y caída larga
- *     que se desvanece al entrar a la página.
+ * Objetivo: imitar el arranque y el corte de una MotoGP real (Aprilia RS-GP V4
+ * de Bezzecchi) de la forma más creíble posible con síntesis. El sonido dura
+ * **12 s** y reproduce una salida de boxes completa:
+ *
+ *   FASE 0 (0,0–0,9 s)  Arranque: motor de arranque (zumbido agudo) + primeras
+ *                       explosiones irregulares.
+ *   FASE 1 (0,9–2,2 s)  Encendido y ralentí: el V4 «coge» y se estabiliza con
+ *                       un lope irregular característico.
+ *   FASE 2 (2,2–4,2 s)  Primer golpe de gas: sube de vueltas, corta, cae.
+ *   FASE 3 (4,2–7,6 s)  Aceleración a fondo: sube de régimen pasando por 3
+ *                       cambios de marcha (cada uno con su caída y su «blip»).
+ *   FASE 4 (7,6–9,6 s)  Zona alta: el grito metálico sostenido (red line).
+ *   FASE 5 (9,6–11,2 s) Corte y deceleración: baja de vueltas con petardeo.
+ *   FASE 6 (11,2–12 s)  Vuelve a ralentí y se desvanece.
+ *
+ * CADENA DE SÍNTESIS (por qué suena a moto y no a zumbido):
+ *   - **Fundamental + armónicos**: 5 dientes de sierra en proporciones 1×, 2×,
+ *     3×, 4× y 0,5×, desafinados entre sí (detune) → el timbre rico y «sucio»
+ *     de un escape de competición, con batidos.
+ *   - **V4 irregular**: un LFO (subaudio) modula la afinación para dar el lope
+ *     desigual del encendido en V, en vez del drone perfecto de un sintetizador.
+ *   - **Rugido de admisión**: ruido blanco por un `bandpass` cuya frecuencia
+ *     sigue al régimen → el «aire» que entra por la caja del filtro.
+ *   - **Soplido de escape**: segundo ruido por `highpass` → el siseo cortante.
+ *   - **`lowpass` maestro**: abre con el régimen (700 Hz → 5 kHz) y cierra al
+ *     cortar el gas → el motor «se abre» al acelerar y se apaga al soltar.
+ *   - **Saturación (`WaveShaper`)**: añade armónicos impares y comprime el pico,
+ *     el «grano» que distingue un escape real de un tono limpio.
+ *   - **Envolvente de régimen** con meseta y caídas en cada cambio de marcha.
  *
  * Reglas de accesibilidad y de navegador:
  *   - El `AudioContext` se crea **dentro del manejador del clic** (política de
@@ -19,15 +38,17 @@
  *   - Se gestiona el estado `suspended` con `resume()`.
  *   - No suena si el usuario ha silenciado (localStorage) ni con
  *     `prefers-reduced-motion`.
- *   - Todo el trabajo pesado (buffer de ruido) se cachea entre llamadas.
+ *   - Todo el trabajo pesado (buffer de ruido, curva de saturación) se cachea.
  */
 
 const MUTE_KEY = 'bz72:engine-muted';
 const MAX_GAIN = 0.4;
-const DURATION = 2.6;
+/** Duración total del arranque + corte (mínimo pedido: 10 s). */
+export const ENGINE_DURATION = 12;
 
 let audioCtx: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
+let shaperCurve: Float32Array<ArrayBuffer> | null = null;
 
 /** ¿El usuario ha silenciado el motor? Nunca rompe si localStorage no está. */
 export function isEngineMuted(): boolean {
@@ -82,10 +103,10 @@ function getContext(): AudioContext | null {
   return audioCtx;
 }
 
-/** Buffer de ruido blanco cacheado (2 s es de sobra para el rugido). */
+/** Buffer de ruido blanco cacheado (3 s es de sobra para el rugido continuo). */
 function getNoiseBuffer(ctx: AudioContext): AudioBuffer {
   if (noiseBuffer && noiseBuffer.sampleRate === ctx.sampleRate) return noiseBuffer;
-  const length = Math.floor(ctx.sampleRate * 2);
+  const length = Math.floor(ctx.sampleRate * 3);
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
@@ -94,7 +115,24 @@ function getNoiseBuffer(ctx: AudioContext): AudioBuffer {
 }
 
 /**
- * Reproduce el arranque y la aceleración de un motor de MotoGP.
+ * Curva de saturación suave (tanh) cacheada: añade armónicos impares y comprime
+ * los picos → el «grano» metálico del escape. `amount` controla la dureza.
+ */
+function getShaperCurve(): Float32Array<ArrayBuffer> {
+  if (shaperCurve) return shaperCurve;
+  const n = 1024;
+  const curve = new Float32Array(n);
+  const k = 3.2;
+  for (let i = 0; i < n; i += 1) {
+    const x = (i / (n - 1)) * 2 - 1;
+    curve[i] = Math.tanh(k * x) / Math.tanh(k);
+  }
+  shaperCurve = curve;
+  return curve;
+}
+
+/**
+ * Reproduce un arranque y corte de motor de MotoGP (12 s).
  *
  * @returns `true` si el sonido se ha lanzado, `false` si se ha omitido
  *          (silenciado, movimiento reducido o Web Audio no disponible).
@@ -109,104 +147,203 @@ export function playEngineRev(): boolean {
   if (ctx.state === 'suspended') void ctx.resume();
 
   const now = ctx.currentTime;
-  const end = now + DURATION;
+  const end = now + ENGINE_DURATION;
+
+  // ── Curva de régimen (RPM): pico de vueltas × 6000 rpm ──────────────────
+  // Recorre arranque → ralentí → dos golpes de gas → aceleración con 3 cambios
+  // de marcha → zona alta → corte → vuelta a ralentí.
+  // Valores en Hz de la fundamental (el V4 a ~14 000 rpm ≈ 233 Hz).
+  const rev: Array<[number, number]> = [
+    [now + 0.0, 30], // motor de arranque
+    [now + 0.35, 34],
+    [now + 0.6, 48], // primeras explosiones
+    [now + 0.9, 70], // coge
+    [now + 1.3, 74],
+    [now + 1.9, 66], // lope de ralentí
+    [now + 2.2, 72],
+    // Golpe de gas 1
+    [now + 2.7, 150],
+    [now + 3.2, 190],
+    [now + 3.7, 168], // corta
+    [now + 4.2, 96],
+    // Aceleración a fondo con cambios de marcha
+    [now + 4.7, 150],
+    [now + 5.1, 205], // 1.ª → 2.ª (caída de régimen)
+    [now + 5.4, 170],
+    [now + 5.9, 215], // 2.ª → 3.ª
+    [now + 6.2, 180],
+    [now + 6.8, 228], // 3.ª → 4.ª
+    [now + 7.1, 196],
+    [now + 7.6, 236], // zona alta (red line)
+    [now + 8.4, 240],
+    [now + 9.0, 232],
+    // Corte y deceleración con petardeo
+    [now + 9.6, 190],
+    [now + 10.1, 150],
+    [now + 10.6, 120],
+    [now + 11.1, 92],
+    [now + 11.5, 74], // ralentí
+    [end, 62],
+  ];
+
+  /** Aplica la curva de régimen (× `ratio`) a cualquier AudioParam de frecuencia. */
+  const applyRev = (param: AudioParam, ratio: number): void => {
+    rev.forEach(([t, f]) => param.setValueAtTime(f * ratio, t));
+  };
 
   // ── Bus de salida con la ganancia máxima controlada ──────────────────────
   const master = ctx.createGain();
-  master.gain.setValueAtTime(0, now);
+  master.gain.value = 0;
   master.connect(ctx.destination);
 
-  // ── Filtro pasa-bajos general (abre con el régimen, cierra al final) ─────
+  // ── Saturación (grano del escape) ────────────────────────────────────────
+  const shaper = ctx.createWaveShaper();
+  shaper.curve = getShaperCurve();
+  shaper.oversample = '4x';
+  shaper.connect(master);
+
+  // ── Filtro pasa-bajos maestro: sigue al régimen y cierra al cortar ───────
   const lowpass = ctx.createBiquadFilter();
   lowpass.type = 'lowpass';
-  lowpass.Q.value = 0.9;
-  lowpass.frequency.setValueAtTime(700, now);
-  lowpass.frequency.exponentialRampToValueAtTime(3200, now + 1.5);
-  lowpass.frequency.exponentialRampToValueAtTime(600, end);
-  lowpass.connect(master);
+  lowpass.Q.value = 1.1;
+  lowpass.frequency.setValueAtTime(600, now);
+  lowpass.frequency.exponentialRampToValueAtTime(2600, now + 1.2);
+  lowpass.frequency.exponentialRampToValueAtTime(1500, now + 2.2);
+  lowpass.frequency.exponentialRampToValueAtTime(5200, now + 7.6); // abre a fondo
+  lowpass.frequency.exponentialRampToValueAtTime(5600, now + 9.0);
+  lowpass.frequency.exponentialRampToValueAtTime(900, now + 11.3); // cierra al cortar
+  lowpass.frequency.exponentialRampToValueAtTime(700, end);
+  lowpass.connect(shaper);
 
-  /**
-   * Envolvente común: ataque (arranque), meseta con aceleración y caída larga
-   * que se desvanece al entrar en la página.
-   */
+  // ── Envolvente maestra: arranque, meseta, corte y desvanecido ────────────
   master.gain.setValueAtTime(0, now);
-  master.gain.linearRampToValueAtTime(MAX_GAIN, now + 0.12);
-  master.gain.setValueAtTime(MAX_GAIN, now + 1.6);
-  master.gain.exponentialRampToValueAtTime(0.0001, end);
+  master.gain.linearRampToValueAtTime(MAX_GAIN * 0.55, now + 0.25); // arranque
+  master.gain.linearRampToValueAtTime(MAX_GAIN * 0.6, now + 1.1);
+  master.gain.linearRampToValueAtTime(MAX_GAIN * 0.55, now + 2.2); // ralentí
+  master.gain.linearRampToValueAtTime(MAX_GAIN * 0.85, now + 3.2); // gas
+  master.gain.setValueAtTime(MAX_GAIN * 0.8, now + 4.2);
+  master.gain.linearRampToValueAtTime(MAX_GAIN, now + 7.6); // a fondo
+  master.gain.setValueAtTime(MAX_GAIN, now + 9.4);
+  master.gain.linearRampToValueAtTime(MAX_GAIN * 0.7, now + 10.6); // corta
+  master.gain.exponentialRampToValueAtTime(0.0001, end); // se desvanece
 
-  // ── Osciladores de motor ────────────────────────────────────────────────
-  // Rampa de régimen: sube en dos tramos (arranque y aceleración plena).
-  const revCurve: Array<[number, number]> = [
-    [now, 80],
-    [now + 0.18, 220],
-    [now + 0.5, 340],
-    [now + 1.4, 600],
-    [now + 1.9, 520],
-    [end, 260],
+  // ── Banco de osciladores: fundamental + armónicos (timbre de escape) ─────
+  // Las proporciones no enteras (1.004 etc.) generan batidos: el motor «late».
+  const partials: Array<{ type: OscillatorType; ratio: number; detune: number; gain: number }> = [
+    { type: 'sawtooth', ratio: 0.5, detune: -4, gain: 0.18 }, // subarmónico (cuerpo)
+    { type: 'sawtooth', ratio: 1, detune: 0, gain: 0.5 }, // fundamental
+    { type: 'sawtooth', ratio: 1.004, detune: 7, gain: 0.42 }, // batido
+    { type: 'sawtooth', ratio: 2, detune: -6, gain: 0.3 }, // 2.º armónico
+    { type: 'square', ratio: 3, detune: 4, gain: 0.16 }, // 3.º (filo metálico)
+    { type: 'sawtooth', ratio: 4, detune: -9, gain: 0.12 }, // 4.º
   ];
 
-  const makeOsc = (
-    type: OscillatorType,
-    detune: number,
-    gainValue: number,
-    ratio: number,
-  ): OscillatorNode => {
+  const oscNodes: OscillatorNode[] = [];
+  partials.forEach(({ type, ratio, detune, gain }) => {
     const osc = ctx.createOscillator();
     osc.type = type;
     osc.detune.value = detune;
-    revCurve.forEach(([t, f]) => {
-      osc.frequency.setValueAtTime(f * ratio, t);
-    });
+    applyRev(osc.frequency, ratio);
     const g = ctx.createGain();
-    g.gain.value = gainValue;
+    g.gain.value = gain;
     osc.connect(g);
     g.connect(lowpass);
     osc.start(now);
     osc.stop(end);
-    return osc;
-  };
+    oscNodes.push(osc);
+  });
 
-  // Dos sierras (una desafinada para dar cuerpo) + un cuadrado una octava arriba.
-  makeOsc('sawtooth', 0, 0.5, 1);
-  makeOsc('sawtooth', 7, 0.44, 1.004);
-  makeOsc('square', -5, 0.16, 2);
+  // ── LFO de irregularidad (V4): modula la afinación del banco ────────────
+  // Un motor en V no dispara a intervalos iguales; este temblor subaudio da el
+  // «lope» característico en vez del drone perfecto de un sintetizador.
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.setValueAtTime(9, now);
+  lfo.frequency.linearRampToValueAtTime(26, now + 7.6);
+  lfo.frequency.linearRampToValueAtTime(12, end);
+  const lfoDepth = ctx.createGain();
+  lfoDepth.gain.setValueAtTime(14, now); // ±14 cents en ralentí
+  lfoDepth.gain.linearRampToValueAtTime(28, now + 7.6); // ±28 en zona alta
+  lfoDepth.gain.linearRampToValueAtTime(16, end);
+  lfo.connect(lfoDepth);
+  oscNodes.forEach((osc) => lfoDepth.connect(osc.detune));
+  lfo.start(now);
+  lfo.stop(end);
 
-  // ── Rugido: ruido filtrado en banda (admisión/escape) ───────────────────
-  const noise = ctx.createBufferSource();
-  noise.buffer = getNoiseBuffer(ctx);
-  noise.loop = true;
+  // ── Rugido de admisión: ruido por bandpass que sigue al régimen ──────────
+  const intake = ctx.createBufferSource();
+  intake.buffer = getNoiseBuffer(ctx);
+  intake.loop = true;
+  const intakeBand = ctx.createBiquadFilter();
+  intakeBand.type = 'bandpass';
+  intakeBand.Q.setValueAtTime(2.2, now);
+  intakeBand.Q.linearRampToValueAtTime(0.8, now + 7.6);
+  applyRev(intakeBand.frequency, 9); // el «aire» sube con las revoluciones
+  const intakeGain = ctx.createGain();
+  intakeGain.gain.setValueAtTime(0.0001, now);
+  intakeGain.gain.linearRampToValueAtTime(0.16, now + 0.3);
+  intakeGain.gain.linearRampToValueAtTime(0.3, now + 7.6);
+  intakeGain.gain.setValueAtTime(0.26, now + 9.4);
+  intakeGain.gain.exponentialRampToValueAtTime(0.0001, end);
+  intake.connect(intakeBand);
+  intakeBand.connect(intakeGain);
+  intakeGain.connect(lowpass);
+  intake.start(now);
+  intake.stop(end);
 
-  const band = ctx.createBiquadFilter();
-  band.type = 'bandpass';
-  band.Q.setValueAtTime(1.4, now);
-  band.Q.linearRampToValueAtTime(0.7, now + 1.5);
-  band.frequency.setValueAtTime(180, now);
-  band.frequency.exponentialRampToValueAtTime(1800, now + 1.4);
-  band.frequency.exponentialRampToValueAtTime(400, end);
+  // ── Soplido de escape: ruido por highpass → el siseo cortante al acelerar ─
+  const hiss = ctx.createBufferSource();
+  hiss.buffer = getNoiseBuffer(ctx);
+  hiss.loop = true;
+  const hissFilter = ctx.createBiquadFilter();
+  hissFilter.type = 'highpass';
+  hissFilter.frequency.setValueAtTime(900, now);
+  hissFilter.frequency.exponentialRampToValueAtTime(2600, now + 7.6);
+  hissFilter.frequency.exponentialRampToValueAtTime(800, end);
+  const hissGain = ctx.createGain();
+  hissGain.gain.setValueAtTime(0.0001, now);
+  hissGain.gain.linearRampToValueAtTime(0.05, now + 2.2);
+  hissGain.gain.linearRampToValueAtTime(0.14, now + 7.6);
+  hissGain.gain.exponentialRampToValueAtTime(0.0001, now + 10.8);
+  hiss.connect(hissFilter);
+  hissFilter.connect(hissGain);
+  hissGain.connect(lowpass);
+  hiss.start(now);
+  hiss.stop(end);
 
-  const noiseGain = ctx.createGain();
-  noiseGain.gain.setValueAtTime(0.0001, now);
-  noiseGain.gain.linearRampToValueAtTime(0.22, now + 0.15);
-  noiseGain.gain.setValueAtTime(0.22, now + 1.5);
-  noiseGain.gain.exponentialRampToValueAtTime(0.0001, end);
+  // ── Petardeo del escape al cortar (pequeños chasquidos de ruido en banda) ─
+  const popTimes = [9.65, 9.95, 10.25, 10.5];
+  popTimes.forEach((t) => {
+    const pop = ctx.createBufferSource();
+    pop.buffer = getNoiseBuffer(ctx);
+    const popBand = ctx.createBiquadFilter();
+    popBand.type = 'bandpass';
+    popBand.frequency.value = 480;
+    popBand.Q.value = 1.3;
+    const popGain = ctx.createGain();
+    popGain.gain.setValueAtTime(0.0001, t);
+    popGain.gain.linearRampToValueAtTime(0.28, t + 0.012);
+    popGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    pop.connect(popBand);
+    popBand.connect(popGain);
+    popGain.connect(lowpass);
+    pop.start(t);
+    pop.stop(t + 0.12);
+  });
 
-  noise.connect(band);
-  band.connect(noiseGain);
-  noiseGain.connect(lowpass);
-  noise.start(now);
-  noise.stop(end);
-
-  // Limpieza: al terminar, se desconecta el bus (no se acumulan nodos).
+  // ── Limpieza: al terminar, se desconecta el bus (no se acumulan nodos) ───
   window.setTimeout(
     () => {
       try {
         master.disconnect();
+        shaper.disconnect();
         lowpass.disconnect();
+        lfoDepth.disconnect();
       } catch {
         /* ya desconectado */
       }
     },
-    Math.ceil((DURATION + 0.4) * 1000),
+    Math.ceil((ENGINE_DURATION + 0.5) * 1000),
   );
 
   return true;
