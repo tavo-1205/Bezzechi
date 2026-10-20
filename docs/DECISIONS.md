@@ -97,3 +97,21 @@ Registro de decisiones del Director. Las reglas de colaboración están en
 - **Limitación que se mantiene**: no existe herramienta de emulación de
   dispositivo/ancho en este entorno → el responsive móvil se verifica por CSS
   (breakpoints `sm/md/lg/xl` + `clamp`), no por captura.
+
+## 2026-10-19 · Override de movimiento `?motion=full` (solicitud de verificación visual)
+
+- **Causa raíz de «no se ven las animaciones»**: el equipo tiene los efectos de
+  animación de Windows **desactivados** —medido: `SPI_GETCLIENTAREAANIMATION = false`
+  y `MinAnimate = 0`—, así que **todos** los navegadores del equipo reportan
+  `prefers-reduced-motion: reduce` y la web apagaba todo el movimiento a propósito
+  (criterio 8). El código era correcto; lo que fallaba era el contexto.
+- **Solución** (sin tocar ningún componente): `src/lib/motion.ts` parchea
+  `window.matchMedia` cuando la URL lleva `?motion=full` (persistido en
+  `localStorage['bz72:motion']`), marcando `html[data-motion="full"]`. Los 5 bloques
+  CSS `@media (prefers-reduced-motion: reduce)` quedan limitados a
+  `html:not([data-motion='full'])`. `?motion=system` lo desactiva y vuelve al
+  comportamiento del sistema.
+- **Accesibilidad intacta**: por defecto (sin parámetro) todo sigue respetando
+  `prefers-reduced-motion`; el override es explícito, documentado y reversible.
+- Riesgo aceptado y decidido por el Director: revisión inmediata de typecheck/build y
+  de los estados con y sin override.

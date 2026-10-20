@@ -159,6 +159,12 @@ hace **un único polling compartido** (60 s en calma, 15 s en fin de semana).
   desbordamiento horizontal (capturas de revisión en `%LOCALAPPDATA%\Temp\opencode\capturas\`).
 - Aviso de build conocido: el chunk diferido `three` (~970 kB, gzip ~262 kB) supera el
   umbral de 900 kB; se carga con `lazy` solo para el hero y no bloquea el resto.
+- **Ver animadas las animaciones**: si el sistema tiene desactivados los efectos de
+  animación (Windows: *Configuración → Accesibilidad → Efectos visuales → Efectos de
+  animación*), la web respeta esa preferencia y **no se mueve nada** (es lo correcto
+  por accesibilidad). Para ver el sitio animado en ese equipo, abre la URL con
+  **`?motion=full`** (la preferencia se recuerda; `?motion=system` la limpia y vuelve
+  al ajuste del sistema).
 
 ## Despliegue
 
